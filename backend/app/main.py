@@ -16,6 +16,9 @@ from app.api import indexing
 from app.api import query
 from app.api import answer
 from app.api import stocks
+from app.api import smart_features
+from app.api import export_tags
+from app.api import alerts
 
 
 settings = get_settings()
@@ -98,6 +101,9 @@ app.include_router(indexing.router)
 app.include_router(query.router)
 app.include_router(answer.router)
 app.include_router(stocks.router)
+app.include_router(smart_features.router)
+app.include_router(export_tags.router)
+app.include_router(alerts.router)
 
 
 # Root endpoint

@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { FileText, Calendar, Layers, Eye, MessageSquare } from 'lucide-react'
+import { FileText, Calendar, Layers, Eye, MessageSquare, Sparkles, BarChart3 } from 'lucide-react'
 import ChatContainer from '../chat/ChatContainer'
+import SummaryCard from './SummaryCard'
+import FinancialDashboard from './FinancialDashboard'
+import TagPicker from './TagPicker'
 
 interface Document {
   id: string
@@ -17,11 +20,19 @@ interface DocumentViewProps {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-export default function DocumentView({ document }: DocumentViewProps) {
-  const [activeTab, setActiveTab] = useState<'preview' | 'chat'>('chat')
+type TabType = 'chat' | 'preview' | 'summary' | 'financials'
 
-  // Build the PDF preview URL (auth token will be needed for the request)
+export default function DocumentView({ document }: DocumentViewProps) {
+  const [activeTab, setActiveTab] = useState<TabType>('chat')
+
   const pdfUrl = `${API_URL}/api/documents/${document.id}/file`
+
+  const tabs: { id: TabType; label: string; icon: any }[] = [
+    { id: 'chat', label: 'Chat', icon: MessageSquare },
+    { id: 'summary', label: 'AI Summary', icon: Sparkles },
+    { id: 'financials', label: 'Financials', icon: BarChart3 },
+    { id: 'preview', label: 'Preview', icon: Eye },
+  ]
 
   return (
     <div className="h-full flex">
@@ -44,6 +55,9 @@ export default function DocumentView({ document }: DocumentViewProps) {
               <p className="text-gray-400 text-sm mt-1">
                 PDF Document
               </p>
+              <div className="mt-2">
+                <TagPicker documentId={document.id} />
+              </div>
             </div>
           </div>
 
@@ -73,35 +87,27 @@ export default function DocumentView({ document }: DocumentViewProps) {
           </div>
 
           {/* Tab toggle */}
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={() => setActiveTab('preview')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'preview' 
-                  ? 'bg-primary/20 text-primary border border-primary/30' 
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Eye size={16} />
-              Preview
-            </button>
-            <button
-              onClick={() => setActiveTab('chat')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'chat' 
-                  ? 'bg-primary/20 text-primary border border-primary/30' 
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <MessageSquare size={16} />
-              Chat
-            </button>
+          <div className="flex gap-1.5 mt-4 flex-wrap">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  activeTab === tab.id 
+                    ? 'bg-primary/20 text-primary border border-primary/30' 
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <tab.icon size={14} />
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Content area based on tab */}
-        <div className="flex-1 overflow-hidden">
-          {activeTab === 'preview' ? (
+        <div className="flex-1 overflow-y-auto">
+          {activeTab === 'preview' && (
             <div className="h-full p-4">
               <div className="h-full rounded-lg overflow-hidden border border-white/10 bg-white">
                 <iframe
@@ -111,24 +117,25 @@ export default function DocumentView({ document }: DocumentViewProps) {
                 />
               </div>
             </div>
-          ) : (
+          )}
+          
+          {activeTab === 'summary' && (
+            <SummaryCard documentId={document.id} />
+          )}
+
+          {activeTab === 'financials' && (
+            <FinancialDashboard documentId={document.id} />
+          )}
+
+          {activeTab === 'chat' && (
             <div className="p-4 overflow-y-auto h-full">
-              {/* Example questions */}
-              <h3 className="text-sm font-medium text-gray-300 mb-3">Try asking</h3>
-              <div className="space-y-2">
-                {[
-                  "What was the total revenue?",
-                  "Summarize the key findings",
-                  "What are the main risks mentioned?"
-                ].map((question, i) => (
-                  <div 
-                    key={i}
-                    className="glass-hover p-3 text-sm text-gray-300 cursor-pointer"
-                  >
-                    "{question}"
-                  </div>
-                ))}
-              </div>
+              <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                <Sparkles size={14} className="text-primary" />
+                Document Intelligence
+              </h3>
+              <p className="text-xs text-gray-500 mb-4">
+                Use the chat to ask questions, or explore the AI Summary and Financials tabs for automatic insights.
+              </p>
             </div>
           )}
         </div>

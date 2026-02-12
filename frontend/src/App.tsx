@@ -5,6 +5,9 @@ import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
 import StockDashboard from './pages/StockDashboard'
+import AnalyticsPage from './pages/AnalyticsPage'
+import ComparePage from './pages/ComparePage'
+import AlertsPage from './pages/AlertsPage'
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -87,6 +90,30 @@ function App() {
         element={
           <ProtectedRoute>
             <StockDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/analytics" 
+        element={
+          <ProtectedRoute>
+            <AnalyticsPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/compare" 
+        element={
+          <ProtectedRoute>
+            <ComparePage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/alerts" 
+        element={
+          <ProtectedRoute>
+            <AlertsPage />
           </ProtectedRoute>
         } 
       />
