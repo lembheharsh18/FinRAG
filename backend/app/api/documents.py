@@ -15,7 +15,7 @@ from pathlib import Path
 import logging
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 
 from app.config import get_settings, Settings
 from app.models.document import (
@@ -169,31 +169,26 @@ async def upload_document(
     # Generate unique document ID
     document_id = str(uuid.uuid4())
     
-    # Create upload directory if it doesn't exist
-    upload_dir = Path(settings.upload_directory)
+    # Create per-user upload directory
+    user_id = user.user_id
+    upload_dir = Path(settings.upload_directory) / user_id
     upload_dir.mkdir(parents=True, exist_ok=True)
     
-    # Save file temporarily for processing
-    temp_file_path = None
+    # Persistent file path for this document
+    persistent_path = upload_dir / f"{document_id}.pdf"
+    
     try:
-        # Create temp file with proper extension
-        with tempfile.NamedTemporaryFile(
-            delete=False, 
-            suffix=".pdf",
-            dir=upload_dir
-        ) as temp_file:
-            temp_file_path = temp_file.name
-            
-            # Write uploaded content to temp file
-            content = await file.read()
-            temp_file.write(content)
+        # Write uploaded content to persistent file
+        content = await file.read()
+        with open(persistent_path, "wb") as f:
+            f.write(content)
         
         # Get file size
-        file_size = os.path.getsize(temp_file_path)
+        file_size = os.path.getsize(persistent_path)
         
         # Process the PDF
         try:
-            pdf_content = pdf_processor.process_pdf(temp_file_path)
+            pdf_content = pdf_processor.process_pdf(str(persistent_path))
         except PDFProcessingError as e:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -247,15 +242,14 @@ async def upload_document(
         })
         
         # Auto-index the document immediately
-        # This eliminates the need for a separate /api/index call
-        user_id = user.user_id
         try:
             from app.services.vector_store import VectorStore
             vector_store = VectorStore()
             index_result = vector_store.index_chunks(
                 user_id=user_id,
                 document_id=document_id,
-                chunks=chunks
+                chunks=chunks,
+                filename=file.filename
             )
             logger.info(
                 f"Auto-indexed document {document_id}: "
@@ -280,13 +274,18 @@ async def upload_document(
             chunks_preview=chunks_preview
         )
         
-        # Add indexing info to response (will be ignored by model but useful)
         return response
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Unexpected error processing document: {e}")
+        # Clean up persistent file on error
+        if persistent_path.exists():
+            try:
+                os.unlink(persistent_path)
+            except Exception:
+                pass
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
@@ -295,29 +294,43 @@ async def upload_document(
                 "details": {"message": str(e)}
             }
         )
-    finally:
-        # Clean up temp file
-        if temp_file_path and os.path.exists(temp_file_path):
-            try:
-                os.unlink(temp_file_path)
-            except Exception as e:
-                logger.warning(f"Failed to delete temp file: {e}")
 
 
 @router.get(
-    "/documents/{document_id}",
-    summary="Get Document Info",
-    description="Retrieve information about a processed document."
+    "/documents/{document_id}/file",
+    summary="Get Document PDF",
+    description="Serve the original PDF file for preview/download."
 )
-async def get_document(document_id: str):
+async def get_document_file(
+    document_id: str,
+    user_id: str = Depends(get_user_id),
+    settings: Settings = Depends(get_settings),
+):
     """
-    Get information about a processed document.
+    Serve the uploaded PDF file.
     
-    Note: Full implementation will query ChromaDB for stored document info.
+    Args:
+        document_id: Document identifier
+        user_id: Authenticated user's ID
+        settings: App settings
+        
+    Returns:
+        The PDF file content
     """
-    # TODO: Implement document retrieval from ChromaDB
-    return {
-        "document_id": document_id,
-        "status": "Document storage not yet implemented",
-        "message": "This endpoint will return document details once ChromaDB integration is complete"
-    }
+    upload_dir = Path(settings.upload_directory) / user_id
+    file_path = upload_dir / f"{document_id}.pdf"
+    
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "error": "Document file not found",
+                "error_code": "FILE_NOT_FOUND"
+            }
+        )
+    
+    return FileResponse(
+        path=str(file_path),
+        media_type="application/pdf",
+        filename=f"{document_id}.pdf"
+    )

@@ -15,6 +15,7 @@ from app.api import documents
 from app.api import indexing
 from app.api import query
 from app.api import answer
+from app.api import stocks
 
 
 settings = get_settings()
@@ -29,15 +30,26 @@ async def lifespan(app: FastAPI):
     Use this for initializing database connections, loading models, etc.
     """
     # Startup: Initialize resources
-    print(f"🚀 Starting {settings.app_name} v{settings.app_version}")
-    print(f"📊 Debug mode: {settings.debug}")
-    print(f"🤖 Using OpenAI model: {settings.openai_model}")
-    print(f"🧠 Using embedding model: {settings.embedding_model}")
+    print(f"[*] Starting {settings.app_name} v{settings.app_version}")
+    print(f"[*] Debug mode: {settings.debug}")
+    
+    # LLM provider diagnostics
+    if settings.groq_api_key:
+        print(f"[*] LLM Provider: Groq")
+        print(f"[*] Groq model: {settings.groq_model}")
+        print(f"[*] Groq key: {settings.groq_api_key[:8]}...")
+    elif settings.openai_api_key:
+        print(f"[*] LLM Provider: OpenAI")
+        print(f"[*] OpenAI model: {settings.openai_model}")
+    else:
+        print("[!] WARNING: No LLM API key configured!")
+    
+    print(f"[*] Using embedding model: {settings.embedding_model}")
     
     yield
     
     # Shutdown: Clean up resources
-    print(f"👋 Shutting down {settings.app_name}")
+    print(f"[*] Shutting down {settings.app_name}")
 
 
 # Create FastAPI application
@@ -54,6 +66,7 @@ app = FastAPI(
     - 🔍 Semantic search across financial documents
     - 💬 Natural language Q&A with GPT-4
     - 📊 Support for tables and financial data extraction
+    - 📈 Live stock market dashboard
     
     ### Tech Stack:
     - FastAPI for the backend API
@@ -84,6 +97,7 @@ app.include_router(documents.router)
 app.include_router(indexing.router)
 app.include_router(query.router)
 app.include_router(answer.router)
+app.include_router(stocks.router)
 
 
 # Root endpoint

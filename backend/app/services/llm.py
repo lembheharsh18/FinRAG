@@ -1,8 +1,8 @@
 """
 LLM Service for FinRAG.
 
-Handles OpenAI GPT-4 interactions for answer generation
-in the RAG pipeline.
+Handles LLM interactions for answer generation
+in the RAG pipeline. Supports Groq (preferred) and OpenAI.
 """
 
 import logging
@@ -95,22 +95,34 @@ class LLMServiceError(Exception):
 
 class LLMService:
     """
-    LLM service for answer generation using OpenAI GPT-4.
+    LLM service for answer generation.
     
-    Handles prompt construction, API calls, and response parsing.
+    Supports Groq (preferred, free) and OpenAI backends.
+    Both use the OpenAI-compatible SDK.
     """
     
     def __init__(self):
-        """Initialize the OpenAI client."""
-        if not settings.openai_api_key:
+        """Initialize the LLM client (Groq preferred, OpenAI fallback)."""
+        # Prefer Groq (free, fast)
+        if settings.groq_api_key:
+            base_url = settings.llm_base_url or "https://api.groq.com/openai/v1"
+            self.client = OpenAI(
+                api_key=settings.groq_api_key,
+                base_url=base_url
+            )
+            self.model = settings.groq_model
+            self.provider = "groq"
+            logger.info(f"LLM Service initialized with Groq model: {self.model}")
+        elif settings.openai_api_key:
+            self.client = OpenAI(api_key=settings.openai_api_key)
+            self.model = settings.openai_model
+            self.provider = "openai"
+            logger.info(f"LLM Service initialized with OpenAI model: {self.model}")
+        else:
             raise LLMServiceError(
-                "OpenAI API key not configured",
+                "No LLM API key configured. Set GROQ_API_KEY or OPENAI_API_KEY in .env",
                 "API_KEY_MISSING"
             )
-        
-        self.client = OpenAI(api_key=settings.openai_api_key)
-        self.model = settings.openai_model
-        logger.info(f"LLM Service initialized with model: {self.model}")
     
     def build_prompt(
         self,

@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
+import StockDashboard from './pages/StockDashboard'
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -81,6 +82,14 @@ function App() {
       />
 
       {/* Protected routes */}
+      <Route 
+        path="/dashboard/stocks" 
+        element={
+          <ProtectedRoute>
+            <StockDashboard />
+          </ProtectedRoute>
+        } 
+      />
       <Route 
         path="/dashboard/*" 
         element={

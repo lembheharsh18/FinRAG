@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   FileText, 
@@ -7,10 +7,8 @@ import {
   LogOut, 
   ChevronLeft, 
   ChevronRight,
-  User,
-  Settings,
-  HelpCircle,
-  Trash2
+  Trash2,
+  BarChart3
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -45,6 +43,8 @@ export default function Sidebar({
     await signOut()
     navigate('/login')
   }
+
+  const isStocksDashboard = location.pathname === '/dashboard/stocks'
 
   return (
     <motion.aside
@@ -84,6 +84,21 @@ export default function Sidebar({
         >
           <Upload size={18} />
           {!collapsed && <span>Upload Document</span>}
+        </button>
+      </div>
+
+      {/* Market Dashboard link */}
+      <div className="px-2 mb-2">
+        <button
+          onClick={() => navigate('/dashboard/stocks')}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
+            isStocksDashboard 
+              ? 'bg-primary/10 text-primary border border-primary/20' 
+              : 'text-gray-400 hover:text-white hover:bg-white/5'
+          } ${collapsed ? 'justify-center' : ''}`}
+        >
+          <BarChart3 size={18} className="flex-shrink-0" />
+          {!collapsed && <span>Market Dashboard</span>}
         </button>
       </div>
 

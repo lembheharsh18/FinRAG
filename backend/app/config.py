@@ -29,9 +29,16 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = False
     
-    # OpenAI Configuration
-    openai_api_key: str
+    # OpenAI Configuration (legacy, still supported)
+    openai_api_key: Optional[str] = None
     openai_model: str = "gpt-4"
+    
+    # Groq Configuration (preferred - free and fast)
+    groq_api_key: Optional[str] = None
+    groq_model: str = "llama-3.3-70b-versatile"
+    
+    # Generic LLM config (auto-detected from above)
+    llm_base_url: Optional[str] = None
     
     # ChromaDB Configuration
     chroma_persist_directory: str = "./chroma_db"
@@ -41,7 +48,7 @@ class Settings(BaseSettings):
     embedding_model: str = "all-MiniLM-L6-v2"
     
     # CORS Configuration
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"]
     
     # File Upload Configuration
     max_file_size_mb: int = 50

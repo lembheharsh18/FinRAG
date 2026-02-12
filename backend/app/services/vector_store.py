@@ -128,7 +128,8 @@ class VectorStore:
         self,
         user_id: str,
         document_id: str,
-        chunks: List[DocumentChunk]
+        chunks: List[DocumentChunk],
+        filename: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Index document chunks into the vector store.
@@ -155,7 +156,7 @@ class VectorStore:
         documents = []
         metadatas = []
         
-        for chunk in chunks:
+        for i, chunk in enumerate(chunks):
             ids.append(chunk.chunk_id)
             documents.append(chunk.content)
             
@@ -174,6 +175,11 @@ class VectorStore:
                 metadata["section_header"] = chunk.section_header
             if chunk.table_index is not None:
                 metadata["table_index"] = chunk.table_index
+            if filename:
+                metadata["filename"] = filename
+            if i == 0:
+                import datetime
+                metadata["uploaded_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
             
             metadatas.append(metadata)
         
@@ -337,28 +343,42 @@ class VectorStore:
             "metadata": collection.metadata
         }
     
-    def list_documents(self, user_id: str) -> List[str]:
+    def list_documents(self, user_id: str) -> List[Dict[str, Any]]:
         """
-        List all document IDs in a user's collection.
+        List all documents in a user's collection with rich metadata.
         
         Args:
             user_id: User identifier
             
         Returns:
-            List of document IDs
+            List of document info dicts with filename, page_count, chunk_count, etc.
         """
         collection = self.get_or_create_collection(user_id)
         
         try:
-            # Get all unique document IDs
             results = collection.get(include=["metadatas"])
             
             if results and results["metadatas"]:
-                document_ids = set()
+                # Group chunks by document_id and extract metadata
+                doc_map: Dict[str, Dict[str, Any]] = {}
                 for metadata in results["metadatas"]:
-                    if metadata and "document_id" in metadata:
-                        document_ids.add(metadata["document_id"])
-                return list(document_ids)
+                    if not metadata or "document_id" not in metadata:
+                        continue
+                    doc_id = metadata["document_id"]
+                    if doc_id not in doc_map:
+                        doc_map[doc_id] = {
+                            "document_id": doc_id,
+                            "filename": metadata.get("filename", doc_id),
+                            "page_count": 0,
+                            "chunk_count": 0,
+                            "uploaded_at": metadata.get("uploaded_at"),
+                        }
+                    doc_map[doc_id]["chunk_count"] += 1
+                    page = metadata.get("page_number", 0)
+                    if page and page > doc_map[doc_id]["page_count"]:
+                        doc_map[doc_id]["page_count"] = page
+                
+                return list(doc_map.values())
             return []
         except Exception as e:
             logger.error(f"Failed to list documents: {e}")
