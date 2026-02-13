@@ -35,7 +35,7 @@ export default function ChatContainer({ documentId, documentName }: ChatContaine
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [useStreaming, setUseStreaming] = useState(true)
+  const [useStreaming, setUseStreaming] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)

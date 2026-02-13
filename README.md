@@ -1,124 +1,105 @@
-# FinRAG 📊
+# FinRAG - Financial Document Analysis System
 
-**RAG-based Financial Document QA System for Retail Investors**
+FinRAG is an AI-powered financial document analysis system that leverages Retrieval-Augmented Generation (RAG) to provide insights, summaries, and answers from financial reports, earnings calls, and other documents.
 
-FinRAG is a full-stack web application that allows retail investors to upload financial documents (PDFs) and ask natural language questions about their contents using AI-powered retrieval-augmented generation (RAG).
-
-## 🚀 Features
-
-- 📄 **PDF Document Processing** - Upload and parse financial documents including annual reports, 10-K filings, earnings reports
-- 🔍 **Semantic Search** - Find relevant information using natural language queries
-- 💬 **AI-Powered Q&A** - Get accurate answers with GPT-4
-- 📊 **Table Extraction** - Intelligent extraction of financial tables and data
-- 🔐 **Secure Authentication** - Firebase or Supabase authentication
-
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Backend
 - **Framework**: FastAPI (Python)
-- **Vector Database**: ChromaDB
-- **LLM**: OpenAI GPT-4
-- **Embeddings**: sentence-transformers (all-MiniLM-L6-v2)
-- **PDF Processing**: PyPDF2, pdfplumber, Camelot
+- **Deployment Server**: Uvicorn
+- **AI/LLM**: OpenAI (GPT-4), LangChain
+- **Vector Database**: ChromaDB (Semantic Search)
+- **PDF Processing**: PyPDF2, pdfplumber, Camelot (for tables)
+- **Authentication**: Firebase Admin SDK
+- **Task Management**: Tenacity (Retries)
+- **Utilities**: Pandas, NumPy
 
 ### Frontend
-- **Framework**: React with TypeScript
-- **Styling**: Tailwind CSS
-- **Authentication**: Firebase Auth / Supabase Auth
+- **Framework**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS + Vanilla CSS (Glassmorphism Design)
+- **State Management & Data Fetching**: TanStack Query (React Query)
+- **Routing**: React Router DOM v6
+- **Animations**: Framer Motion
+- **Icons**: Lucide React
+- **Authentication**: Firebase Client SDK
+- **HTTP Client**: Axios
 
-## 📁 Project Structure
+## Prerequisites
 
-```
-FinRAG/
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py          # FastAPI application entry point
-│   │   ├── config.py        # Configuration and settings
-│   │   └── api/
-│   │       ├── __init__.py
-│   │       └── health.py    # Health check endpoints
-│   ├── run.py               # Development server runner
-│   └── .env.example         # Environment variables template
-├── frontend/                 # React TypeScript frontend (coming soon)
-├── requirements.txt          # Python dependencies
-├── .env.example             # Root environment template
-├── .gitignore
-└── README.md
-```
+- **Python**: 3.9+
+- **Node.js**: 18+
+- **API Keys**:
+  - OpenAI API Key (or Groq API Key)
+  - Firebase Project Configuration
+  - (Optional) Render/Vercel for deployment
 
-## 🏃‍♂️ Getting Started
+## Interface & Features
 
-### Prerequisites
+1.  **Smart Chat**: Context-aware Q&A with documents.
+2.  **Streaming Answers**: Real-time token streaming.
+3.  **AI Summaries**: structured executive summaries with sentiment analysis.
+4.  **Financial Dashboards**: Auto-extracted metrics and ratios.
+5.  **Multi-Doc Comparison**: Side-by-side analysis of multiple reports.
+6.  **Analytics**: Usage stats and query performance tracking.
+7.  **Alerts**: Price alerts and ticker extraction.
+8.  **Export**: Download conversation reports as Markdown.
 
-- Python 3.10+
-- Node.js 18+ (for frontend)
-- OpenAI API key
+## How to Run Locally
 
-### Backend Setup
+### 1. Backend Setup
 
-1. **Clone the repository**
-   ```bash
-   cd FinRAG
-   ```
+1.  Navigate to the project root (or `backend/` directory if preferred, but `requirements.txt` is in root).
+2.  Create a virtual environment:
+    ```bash
+    python -m venv venv
+    # Windows
+    venv\Scripts\activate
+    # Mac/Linux
+    source venv/bin/activate
+    ```
+3.  Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+4.  Create a `.env` file in `backend/` based on `.env.example`:
+    ```ini
+    OPENAI_API_KEY=your_key_here
+    # ... other config/firebase credentials
+    ```
+5.  Run the server:
+    ```bash
+    cd backend
+    python run.py
+    # OR
+    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    ```
+    The API will be available at `http://localhost:8000`. API Docs at `http://localhost:8000/docs`.
 
-2. **Create a virtual environment**
-   ```bash
-   python -m venv venv
-   
-   # Windows
-   venv\Scripts\activate
-   
-   # macOS/Linux
-   source venv/bin/activate
-   ```
+### 2. Frontend Setup
 
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+1.  Open a new terminal and navigate to `frontend/`:
+    ```bash
+    cd frontend
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Ensure `.env` (or `.env.local`) exists with Firebase config (VITE_FIREBASE_*).
+4.  Run the development server:
+    ```bash
+    npm run dev
+    ```
+    The application will be available at `http://localhost:5173`.
 
-4. **Configure environment variables**
-   ```bash
-   cd backend
-   cp .env.example .env
-   # Edit .env with your API keys
-   ```
+## Architecture
 
-5. **Run the development server**
-   ```bash
-   python run.py
-   ```
-
-6. **Access the API**
-   - API: http://localhost:8000
-   - Docs: http://localhost:8000/docs
-   - ReDoc: http://localhost:8000/redoc
-
-### API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Root endpoint with app info |
-| GET | `/health` | Basic health check |
-| GET | `/health/detailed` | Detailed health with dependencies |
-
-## 🔧 Configuration
-
-Key environment variables:
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key | Required |
-| `OPENAI_MODEL` | GPT model to use | gpt-4 |
-| `EMBEDDING_MODEL` | Sentence transformer model | all-MiniLM-L6-v2 |
-| `CHROMA_PERSIST_DIRECTORY` | ChromaDB storage path | ./chroma_db |
-| `AUTH_PROVIDER` | Auth provider (firebase/supabase) | firebase |
-
-## 📝 License
-
-MIT License
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+- **Backend (`backend/app/`)**: REST API server.
+    - `api/`: Endpoints (Documents, Chat, Auth, Analytics, etc.)
+    - `services/`: Business logic (LLM, Vector Store, PDF Processing)
+    - `models/`: Pydantic schemes.
+- **Frontend (`frontend/src/`)**: SPA Client.
+    - `components/`: Reusable UI components.
+    - `pages/`: Route views.
+    - `hooks/`: Custom React hooks.
+    - `lib/`: API clients and utilities.
