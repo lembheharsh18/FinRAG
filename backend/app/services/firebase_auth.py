@@ -69,9 +69,15 @@ class FirebaseAuthService:
                 cred = credentials.Certificate(service_account_path)
             
             # Method 2: Service account JSON string (from env)
+            # Supports both raw JSON and base64-encoded JSON (recommended for Render)
             elif hasattr(settings, 'firebase_service_account_json') and settings.firebase_service_account_json:
                 logger.info("Initializing Firebase with service account JSON")
-                service_account_info = json.loads(settings.firebase_service_account_json)
+                raw = settings.firebase_service_account_json.strip()
+                # Try base64 decoding first (recommended for deployment platforms)
+                if not raw.startswith('{'):
+                    import base64
+                    raw = base64.b64decode(raw).decode('utf-8')
+                service_account_info = json.loads(raw)
                 cred = credentials.Certificate(service_account_info)
             
             # Method 3: Application Default Credentials
