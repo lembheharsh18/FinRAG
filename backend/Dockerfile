@@ -30,10 +30,13 @@ RUN mkdir -p /app/uploads /app/chroma_db
 # Expose port
 EXPOSE ${PORT}
 
-# Run with gunicorn + uvicorn workers for production
+# Run with gunicorn + uvicorn worker for production
+# Using 1 worker to fit within Render free tier memory (512MB)
+# sentence-transformers model needs ~200MB RAM
 CMD gunicorn app.main:app \
-    --workers 2 \
+    --workers 1 \
     --worker-class uvicorn.workers.UvicornWorker \
     --bind 0.0.0.0:${PORT} \
-    --timeout 120 \
-    --graceful-timeout 30
+    --timeout 300 \
+    --graceful-timeout 30 \
+    --preload
