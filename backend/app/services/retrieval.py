@@ -9,7 +9,11 @@ import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
-from sentence_transformers import CrossEncoder
+try:
+    from sentence_transformers import CrossEncoder
+    CROSS_ENCODER_AVAILABLE = True
+except ImportError:
+    CROSS_ENCODER_AVAILABLE = False
 
 from app.services.vector_store import VectorStore, get_vector_store
 from app.config import get_settings
@@ -42,35 +46,35 @@ class RetrievalService:
     """
     Retrieval service for semantic search and reranking.
     
-    Combines vector similarity search with cross-encoder reranking
-    for high-quality retrieval.
+    Combines vector similarity search with optional cross-encoder reranking.
+    Reranking is disabled by default to save memory on free-tier hosting.
     """
     
     # Cross-encoder model for reranking
-    _cross_encoder: Optional[CrossEncoder] = None
+    _cross_encoder = None
     _cross_encoder_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     
     def __init__(
         self,
         vector_store: Optional[VectorStore] = None,
-        use_reranking: bool = True
+        use_reranking: bool = False  # Disabled by default to save memory
     ):
         """
         Initialize retrieval service.
         
         Args:
             vector_store: Vector store instance
-            use_reranking: Whether to use cross-encoder reranking
+            use_reranking: Whether to use cross-encoder reranking (requires PyTorch)
         """
         self.vector_store = vector_store or get_vector_store()
-        self.use_reranking = use_reranking
+        self.use_reranking = use_reranking and CROSS_ENCODER_AVAILABLE
         
-        if use_reranking:
+        if self.use_reranking:
             self._load_cross_encoder()
     
     def _load_cross_encoder(self) -> None:
         """Load cross-encoder model for reranking."""
-        if self._cross_encoder is None:
+        if self._cross_encoder is None and CROSS_ENCODER_AVAILABLE:
             logger.info(f"Loading cross-encoder: {self._cross_encoder_model}")
             try:
                 self._cross_encoder = CrossEncoder(
