@@ -17,7 +17,7 @@ export default function UploadModal({ isOpen, onClose, onComplete }: UploadModal
   const [status, setStatus] = useState<UploadStatus>('idle')
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState('')
-  const [documentId, setDocumentId] = useState('')
+  const [_documentId, setDocumentId] = useState('')
 
   const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 

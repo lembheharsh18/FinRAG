@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  DollarSign, TrendingUp, TrendingDown, BarChart3, 
+  DollarSign, TrendingUp, BarChart3, 
   PieChart, Loader2, RefreshCw, ArrowUpRight, ArrowDownRight
 } from 'lucide-react'
 import { api } from '../../lib/api'

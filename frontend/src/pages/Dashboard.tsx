@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams, Routes, Route } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import Sidebar from '../components/layout/Sidebar'
@@ -23,7 +23,7 @@ export default function Dashboard() {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user: _user } = useAuth()
 
   // Load user's documents
   useEffect(() => {

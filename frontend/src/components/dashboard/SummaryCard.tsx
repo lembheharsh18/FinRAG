@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  FileText, TrendingUp, TrendingDown, AlertTriangle, 
-  Sparkles, ArrowUp, ArrowDown, Minus, ChevronDown, ChevronUp,
+  TrendingUp, TrendingDown, AlertTriangle, 
+  Sparkles, ArrowUp, Minus, ChevronDown, ChevronUp,
   BarChart3, Shield, Target, Loader2
 } from 'lucide-react'
 import { api } from '../../lib/api'
