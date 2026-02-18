@@ -19,6 +19,9 @@ from app.api import stocks
 from app.api import smart_features
 from app.api import export_tags
 from app.api import alerts
+from app.api import chat_history
+from app.api import evaluation
+from app.api import glossary
 
 
 settings = get_settings()
@@ -104,6 +107,9 @@ app.include_router(stocks.router)
 app.include_router(smart_features.router)
 app.include_router(export_tags.router)
 app.include_router(alerts.router)
+app.include_router(chat_history.router)
+app.include_router(evaluation.router)
+app.include_router(glossary.router)
 
 
 # Root endpoint

@@ -108,6 +108,39 @@
   .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
   .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
   .thinking-dots span:nth-child(3) { animation-delay: 0s; }
+
+  /* Typing indicator for AI responses */
+  .typing-indicator {
+    display: inline-flex;
+    gap: 4px;
+    padding: 8px 16px;
+  }
+  
+  .typing-indicator span {
+    @apply w-2 h-2 bg-primary rounded-full;
+    animation: typingBounce 1s infinite ease-in-out;
+  }
+  
+  .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+
+  /* Shimmer loading skeleton */
+  .shimmer {
+    @apply relative overflow-hidden;
+    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Glass card hover glow */
+  .glass-glow {
+    @apply glass transition-all duration-500;
+  }
+  
+  .glass-glow:hover {
+    box-shadow: 0 0 30px -5px rgba(0, 102, 255, 0.15), 0 0 0 1px rgba(0, 102, 255, 0.1);
+  }
 }
 
 @keyframes fadeIn {
@@ -146,6 +179,22 @@
     transform: scale(1);
     opacity: 1;
   }
+}
+
+@keyframes typingBounce {
+  0%, 100% { 
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% { 
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 /* Scrollbar styling */

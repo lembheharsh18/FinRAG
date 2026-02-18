@@ -48,7 +48,13 @@ class Settings(BaseSettings):
     embedding_model: str = "all-MiniLM-L6-v2"
     
     # CORS Configuration
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"]
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "https://finrag.vercel.app",       # Update with your actual Vercel URL
+        "https://finrag-*.vercel.app",     # Vercel preview deployments
+    ]
     
     # File Upload Configuration
     max_file_size_mb: int = 50

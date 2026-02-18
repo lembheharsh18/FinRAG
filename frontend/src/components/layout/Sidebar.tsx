@@ -12,9 +12,12 @@ import {
   Activity,
   GitCompare,
   Keyboard,
-  Bell
+  Bell,
+  Scale,
+  BookOpen
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import GlossaryDrawer from '../dashboard/GlossaryDrawer'
 
 interface Document {
   id: string
@@ -40,6 +43,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [glossaryOpen, setGlossaryOpen] = useState(false)
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -53,11 +57,13 @@ export default function Sidebar({
   const isAnalytics = location.pathname === '/dashboard/analytics'
   const isCompare = location.pathname === '/dashboard/compare'
   const isAlerts = location.pathname === '/dashboard/alerts'
+  const isEvaluation = location.pathname === '/dashboard/evaluate'
 
   const navItems = [
     { id: 'stocks', path: '/dashboard/stocks', label: 'Market Dashboard', icon: BarChart3, active: isStocksDashboard },
     { id: 'compare', path: '/dashboard/compare', label: 'Compare Docs', icon: GitCompare, active: isCompare },
     { id: 'analytics', path: '/dashboard/analytics', label: 'Analytics', icon: Activity, active: isAnalytics },
+    { id: 'evaluate', path: '/dashboard/evaluate', label: 'RAG Evaluation', icon: Scale, active: isEvaluation },
     { id: 'alerts', path: '/dashboard/alerts', label: 'Alerts', icon: Bell, active: isAlerts },
   ]
 
@@ -205,6 +211,17 @@ export default function Sidebar({
 
         {/* Bottom actions */}
         <div className="p-3 border-t border-white/5 space-y-2">
+          {/* Glossary */}
+          {!collapsed && (
+            <button
+              onClick={() => setGlossaryOpen(true)}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-colors"
+            >
+              <BookOpen size={14} />
+              <span>Financial Glossary</span>
+            </button>
+          )}
+
           {/* Keyboard shortcuts */}
           {!collapsed && (
             <button
@@ -321,6 +338,9 @@ export default function Sidebar({
           </>
         )}
       </AnimatePresence>
+
+      {/* Glossary Drawer */}
+      <GlossaryDrawer isOpen={glossaryOpen} onClose={() => setGlossaryOpen(false)} />
     </>
   )
 }

@@ -8,6 +8,8 @@ import StockDashboard from './pages/StockDashboard'
 import AnalyticsPage from './pages/AnalyticsPage'
 import ComparePage from './pages/ComparePage'
 import AlertsPage from './pages/AlertsPage'
+import LandingPage from './pages/LandingPage'
+import EvaluationPage from './pages/EvaluationPage'
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -53,6 +55,29 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>
+}
+
+// Landing route: shows landing page for guests, redirects to dashboard for logged-in users
+function LandingRoute() {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="thinking-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    )
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <LandingPage />
 }
 
 function App() {
@@ -126,9 +151,19 @@ function App() {
         } 
       />
 
-      {/* Default redirect */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      {/* Evaluation route */}
+      <Route 
+        path="/dashboard/evaluate" 
+        element={
+          <ProtectedRoute>
+            <EvaluationPage />
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Landing page for unauthenticated users */}
+      <Route path="/" element={<LandingRoute />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
