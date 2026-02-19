@@ -9,7 +9,7 @@ import {
   User,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
   onAuthStateChanged,
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   const signInWithGoogle = async () => {
-    await signInWithPopup(auth, googleProvider)
+    await signInWithRedirect(auth, googleProvider)
   }
 
   const signOut = async () => {
