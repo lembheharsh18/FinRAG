@@ -111,10 +111,8 @@ class FirebaseAuthService:
                 
         except Exception as e:
             logger.error(f"Failed to initialize Firebase: {e}")
-            raise FirebaseAuthError(
-                f"Firebase initialization failed: {str(e)}",
-                "INITIALIZATION_ERROR"
-            )
+            # Don't crash the server — auth will fail at request time with 401/503
+            logger.warning("Firebase auth will be unavailable until credentials are configured")
     
     @property
     def is_initialized(self) -> bool:
