@@ -75,7 +75,7 @@ async def get_suggestions(
             document_id=document_id
         )
 
-        if not results or len(results.get("documents", [[]])[0]) == 0:
+        if not results or len(results) == 0:
             # Return generic suggestions if no chunks found
             return SuggestionsResponse(
                 document_id=document_id,
@@ -91,7 +91,7 @@ async def get_suggestions(
             )
 
         # Build context from retrieved chunks
-        docs = results.get("documents", [[]])[0]
+        docs = [r["content"] for r in results]
         context = "\n\n".join(docs[:5])[:3000]  # Cap at 3000 chars
 
         # Generate suggestions using LLM
@@ -210,7 +210,7 @@ async def get_document_summary(
             document_id=document_id
         )
 
-        docs = results.get("documents", [[]])[0] if results else []
+        docs = [r["content"] for r in results] if results else []
 
         if not docs:
             raise HTTPException(
@@ -340,7 +340,7 @@ async def get_financials(
             document_id=document_id
         )
 
-        docs = results.get("documents", [[]])[0] if results else []
+        docs = [r["content"] for r in results] if results else []
 
         if not docs:
             raise HTTPException(
@@ -478,8 +478,8 @@ async def compare_documents(
                 document_id=doc_id
             )
 
-            docs = results.get("documents", [[]])[0] if results else []
-            metadatas = results.get("metadatas", [[]])[0] if results else []
+            docs = [r["content"] for r in results] if results else []
+            metadatas = [r["metadata"] for r in results] if results else []
 
             # Try to get document name from metadata
             doc_name = f"Document {i+1}"
@@ -592,6 +592,9 @@ async def stream_chat(
             messages = llm_service.build_prompt(context, request.question)
 
             # Stream from LLM
+            if llm_service.client is None:
+                yield f"data: {json.dumps({'type': 'error', 'message': 'LLM not configured'})}\\n\\n"
+                return
             stream = llm_service.client.chat.completions.create(
                 model=llm_service.model,
                 messages=messages,

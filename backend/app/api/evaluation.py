@@ -160,7 +160,7 @@ async def compare_rag_vs_llm(
         ]
         
         llm_response = llm_service._call_openai(llm_messages, temperature=0.3, max_tokens=800)
-        llm_answer = llm_response.choices[0].message.content.strip()
+        llm_answer = llm_response["content"].strip()
         llm_time = time.time() - llm_start
 
         # 3. Judge faithfulness of RAG answer
@@ -174,7 +174,7 @@ async def compare_rag_vs_llm(
             {"role": "user", "content": rag_faith_prompt}
         ]
         rag_judge_resp = llm_service._call_openai(rag_judge_msgs, temperature=0.0, max_tokens=200)
-        rag_judge_text = rag_judge_resp.choices[0].message.content.strip()
+        rag_judge_text = rag_judge_resp["content"].strip()
         
         try:
             # Try to parse JSON, handle markdown fencing
@@ -197,7 +197,7 @@ async def compare_rag_vs_llm(
             {"role": "user", "content": llm_faith_prompt}
         ]
         llm_judge_resp = llm_service._call_openai(llm_judge_msgs, temperature=0.0, max_tokens=200)
-        llm_judge_text = llm_judge_resp.choices[0].message.content.strip()
+        llm_judge_text = llm_judge_resp["content"].strip()
         
         try:
             clean = llm_judge_text.replace("```json", "").replace("```", "").strip()

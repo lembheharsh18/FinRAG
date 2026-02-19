@@ -32,11 +32,9 @@ EXPOSE ${PORT}
 
 # Run with gunicorn + uvicorn worker for production
 # Using 1 worker to fit within Render free tier memory (512MB)
-# sentence-transformers model needs ~200MB RAM
 CMD gunicorn app.main:app \
     --workers 1 \
     --worker-class uvicorn.workers.UvicornWorker \
     --bind 0.0.0.0:${PORT} \
     --timeout 300 \
-    --graceful-timeout 30 \
-    --preload
+    --graceful-timeout 30

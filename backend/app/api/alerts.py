@@ -95,7 +95,7 @@ async def extract_tickers(
             document_id=document_id
         )
 
-        docs = results.get("documents", [[]])[0] if results else []
+        docs = [r["content"] for r in results] if results else []
         if not docs:
             return TickerExtractionResponse(document_id=document_id, tickers=[])
 

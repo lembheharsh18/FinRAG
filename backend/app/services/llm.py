@@ -119,10 +119,14 @@ class LLMService:
             self.provider = "openai"
             logger.info(f"LLM Service initialized with OpenAI model: {self.model}")
         else:
-            raise LLMServiceError(
-                "No LLM API key configured. Set GROQ_API_KEY or OPENAI_API_KEY in .env",
-                "API_KEY_MISSING"
+            logger.warning(
+                "No LLM API key configured. Set GROQ_API_KEY or OPENAI_API_KEY. "
+                "LLM-dependent endpoints will return 503."
             )
+            self.client = None
+            self.model = "none"
+            self.provider = "none"
+
     
     def build_prompt(
         self,
@@ -172,6 +176,11 @@ class LLMService:
             API response dictionary
         """
         try:
+            if self.client is None:
+                raise LLMServiceError(
+                    "No LLM API key configured. Set GROQ_API_KEY or OPENAI_API_KEY.",
+                    "API_KEY_MISSING"
+                )
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
