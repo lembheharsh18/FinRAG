@@ -21,20 +21,17 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app/ ./app/
-COPY run.py .
+COPY . .
 
-# Create directories for uploads and chroma_db
-RUN mkdir -p /app/uploads /app/chroma_db
+# Create uploads directory
+RUN mkdir -p uploads
 
-# Expose port
+# Expose the port
 EXPOSE ${PORT}
 
-# Run with gunicorn + uvicorn worker for production
-# Using 1 worker to fit within Render free tier memory (512MB)
-CMD gunicorn app.main:app \
-    --workers 1 \
-    --worker-class uvicorn.workers.UvicornWorker \
-    --bind 0.0.0.0:${PORT} \
-    --timeout 300 \
-    --graceful-timeout 30
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT}/api/health')"
+
+# Run with uvicorn
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --workers 2 --log-level info"]

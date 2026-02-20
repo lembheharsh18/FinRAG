@@ -212,6 +212,46 @@ class LLMService:
                 "API_ERROR",
                 retryable=False
             )
+
+    def generate_answer_stream(
+        self,
+        context: str,
+        question: str,
+        temperature: float = 0.1,
+        max_tokens: int = 1000,
+    ):
+        """
+        Stream an answer token-by-token using the OpenAI streaming API.
+
+        Yields:
+            str: Each chunk of the generated answer as it arrives.
+        """
+        if self.client is None:
+            raise LLMServiceError(
+                "No LLM API key configured. Set GROQ_API_KEY or OPENAI_API_KEY.",
+                "API_KEY_MISSING",
+            )
+
+        messages = self.build_prompt(context, question)
+
+        try:
+            stream = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            for chunk in stream:
+                delta = chunk.choices[0].delta if chunk.choices else None
+                if delta and delta.content:
+                    yield delta.content
+        except (RateLimitError, APIConnectionError) as e:
+            logger.warning(f"Stream error (retryable): {e}")
+            raise LLMServiceError(str(e), "STREAM_ERROR", retryable=True)
+        except APIError as e:
+            logger.error(f"Stream API error: {e}")
+            raise LLMServiceError(str(e), "STREAM_API_ERROR", retryable=False)
     
     def _extract_sources(
         self,

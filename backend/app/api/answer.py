@@ -5,17 +5,22 @@ Combines retrieval and LLM to provide complete answers
 to user questions about financial documents.
 """
 
+import json
 import logging
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, Request, status, Depends
+from fastapi.responses import StreamingResponse
 
 from app.services.retrieval import RetrievalService, get_retrieval_service
 from app.services.llm import LLMService, LLMServiceError, get_llm_service
 from app.middleware.auth import get_current_user, get_user_id, AuthenticatedUser
+from app.middleware.rate_limiter import limiter
+from app.config import get_settings
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
 router = APIRouter(prefix="/api", tags=["Answer"])
 
 
@@ -109,11 +114,14 @@ class AnswerResponse(BaseModel):
         400: {"description": "Invalid request"},
         404: {"description": "No relevant documents found"},
         422: {"description": "Answer generation failed"},
+        429: {"description": "Rate limit exceeded"},
         500: {"description": "Internal server error"},
     }
 )
+@limiter.limit(settings.rate_limit_answer)
 async def generate_answer(
-    request: AnswerRequest,
+    request_body: AnswerRequest,
+    request: Request,
     user_id: str = Depends(get_user_id),
     retrieval_service: RetrievalService = Depends(get_retrieval_service),
     llm_service: LLMService = Depends(get_llm_service)
@@ -122,7 +130,7 @@ async def generate_answer(
     Generate an answer to a question using RAG.
     
     Args:
-        request: Answer request with question and parameters
+        request_body: Answer request with question and parameters
         retrieval_service: Service for retrieving relevant chunks
         llm_service: Service for generating answers with GPT-4
         
@@ -131,16 +139,16 @@ async def generate_answer(
     """
     try:
         # Configure reranking
-        retrieval_service.use_reranking = request.use_reranking
+        retrieval_service.use_reranking = request_body.use_reranking
         
         # Step 1: Retrieve relevant chunks
-        logger.info(f"Retrieving chunks for question: '{request.question[:50]}...'")
+        logger.info(f"Retrieving chunks for question: '{request_body.question[:50]}...'")
         
         retrieval_result = retrieval_service.retrieve_and_format(
             user_id=user_id,
-            query=request.question,
-            n_results=request.n_chunks,
-            document_id=request.document_id
+            query=request_body.question,
+            n_results=request_body.n_chunks,
+            document_id=request_body.document_id
         )
         
         if retrieval_result["num_chunks"] == 0:
@@ -158,11 +166,11 @@ async def generate_answer(
         logger.info(f"Retrieved {len(chunks)} chunks")
         
         # Step 2: Generate answer using LLM
-        logger.info("Generating answer with GPT-4...")
+        logger.info("Generating answer with LLM...")
         
         try:
             answer_result = llm_service.answer_question(
-                question=request.question,
+                question=request_body.question,
                 context=context,
                 chunks=chunks
             )
@@ -211,12 +219,12 @@ async def generate_answer(
         
         return AnswerResponse(
             answer=answer_result["answer"],
-            question=request.question,
+            question=request_body.question,
             sources=sources,
             chunks_used=chunks_info,
             model=answer_result["model"],
             usage=usage,
-            document_id=request.document_id
+            document_id=request_body.document_id
         )
         
     except HTTPException:
@@ -242,8 +250,10 @@ async def generate_answer(
     Use this for a cleaner chat-like experience without all the metadata.
     """
 )
+@limiter.limit(settings.rate_limit_answer)
 async def chat_with_documents(
-    request: AnswerRequest,
+    request_body: AnswerRequest,
+    request: Request,
     user_id: str = Depends(get_user_id),
     retrieval_service: RetrievalService = Depends(get_retrieval_service),
     llm_service: LLMService = Depends(get_llm_service)
@@ -254,7 +264,7 @@ async def chat_with_documents(
     Returns just the answer and basic source info.
     """
     # Reuse the answer generation logic
-    response = await generate_answer(request, user_id, retrieval_service, llm_service)
+    response = await generate_answer(request_body, request, user_id, retrieval_service, llm_service)
     
     # Return simplified response
     return {
@@ -266,3 +276,74 @@ async def chat_with_documents(
         ],
         "tokens_used": response.usage.total_tokens
     }
+
+
+@router.post(
+    "/answer/stream",
+    summary="Stream Answer (SSE)",
+    description="""
+    Streams the AI-generated answer token-by-token as Server-Sent Events.
+
+    This endpoint reduces perceived latency by sending tokens as they are
+    generated. The response is `text/event-stream`.
+
+    Each SSE event is a JSON object with a `token` field.
+    The final event has `done: true`.
+    """,
+    responses={
+        200: {"description": "Streaming response"},
+        404: {"description": "No relevant documents found"},
+        429: {"description": "Rate limit exceeded"},
+    },
+)
+@limiter.limit(settings.rate_limit_answer)
+async def stream_answer(
+    request_body: AnswerRequest,
+    request: Request,
+    user_id: str = Depends(get_user_id),
+    retrieval_service: RetrievalService = Depends(get_retrieval_service),
+    llm_service: LLMService = Depends(get_llm_service),
+):
+    """Stream an answer using SSE."""
+    # Retrieve chunks first (non-streaming)
+    retrieval_service.use_reranking = request_body.use_reranking
+    retrieval_result = retrieval_service.retrieve_and_format(
+        user_id=user_id,
+        query=request_body.question,
+        n_results=request_body.n_chunks,
+        document_id=request_body.document_id,
+    )
+
+    if retrieval_result["num_chunks"] == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "No relevant documents found.", "error_code": "NO_DOCUMENTS"},
+        )
+
+    context = retrieval_result["context"]
+
+    def event_generator():
+        try:
+            for token in llm_service.generate_answer_stream(
+                context=context,
+                question=request_body.question,
+                temperature=request_body.temperature,
+            ):
+                yield f"data: {json.dumps({'token': token})}\n\n"
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        except LLMServiceError as e:
+            yield f"data: {json.dumps({'error': e.message})}\n\n"
+        except Exception as e:
+            logger.error(f"Stream error: {e}")
+            yield f"data: {json.dumps({'error': 'Stream failed'})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+

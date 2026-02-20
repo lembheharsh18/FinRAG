@@ -10,6 +10,7 @@ import ComparePage from './pages/ComparePage'
 import AlertsPage from './pages/AlertsPage'
 import LandingPage from './pages/LandingPage'
 import EvaluationPage from './pages/EvaluationPage'
+import ErrorBoundary from './components/ErrorBoundary'
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -82,6 +83,7 @@ function LandingRoute() {
 
 function App() {
   return (
+    <ErrorBoundary>
     <Routes>
       {/* Public routes */}
       <Route 
@@ -165,6 +167,7 @@ function App() {
       <Route path="/" element={<LandingRoute />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </ErrorBoundary>
   )
 }
 

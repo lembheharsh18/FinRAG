@@ -14,7 +14,7 @@ from typing import Optional
 from pathlib import Path
 import logging
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Request, status, Depends
 from fastapi.responses import JSONResponse, FileResponse
 
 from app.config import get_settings, Settings
@@ -28,6 +28,7 @@ from app.services.pdf_processor import PDFProcessor, PDFProcessingError
 from app.services.chunking import SemanticChunker
 from app.api.indexing import store_processed_document
 from app.middleware.auth import get_current_user, get_user_id, AuthenticatedUser
+from app.middleware.rate_limiter import limiter
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["Documents"])
@@ -41,8 +42,8 @@ def get_pdf_processor() -> PDFProcessor:
 def get_chunker() -> SemanticChunker:
     """Dependency injection for semantic chunker."""
     config = ChunkingConfig(
-        target_chunk_size=500,
-        chunk_overlap=50,
+        target_chunk_size=1024,
+        chunk_overlap=128,
         preserve_tables=True,
         preserve_headers=True
     )
@@ -141,7 +142,9 @@ def validate_file_type(file: UploadFile, settings: Settings) -> None:
         422: {"description": "Failed to process PDF"},
     }
 )
+@limiter.limit(get_settings().rate_limit_upload)
 async def upload_document(
+    request: Request,
     file: UploadFile = File(..., description="PDF file to upload"),
     user: AuthenticatedUser = Depends(get_current_user),
     settings: Settings = Depends(get_settings),

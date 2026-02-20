@@ -1,46 +1,36 @@
-# FinRAG - Financial Document QA System
-# Python Dependencies
+# FinRAG Backend Dependencies
 
-# ====== Core Framework ======
+# ── Core Framework ──────────────────────────────────────────────
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
-gunicorn==21.2.0
 pydantic==2.5.3
 pydantic-settings==2.1.0
 python-multipart==0.0.6
 
-# ====== LLM & AI ======
+# ── LLM & Embeddings ───────────────────────────────────────────
 openai==1.12.0
-# sentence-transformers removed: using ChromaDB's built-in onnxruntime embeddings instead (much lighter)
-langchain==0.1.5
-langchain-openai==0.0.5
-langchain-community==0.0.17
-
-# ====== Vector Database ======
-chromadb==0.4.22
-
-# ====== PDF Processing ======
-PyPDF2==3.0.1
-pdfplumber==0.10.3
-camelot-py[cv]==0.11.0
-tabula-py==2.8.2
-
-# ====== Data Processing ======
-pandas==2.2.0
-numpy==1.26.3
-
-# ====== Authentication ======
-firebase-admin==6.4.0
-# supabase==2.3.4  # Uncomment if using Supabase
-
-# ====== Utilities ======
-python-dotenv==1.0.0
-httpx==0.26.0
+google-generativeai==0.8.5
 tenacity==8.2.3
 
-# ====== Development ======
-pytest==7.4.4
-pytest-asyncio==0.23.4
-black==24.1.1
-isort==5.13.2
-mypy==1.8.0
+# ── Vector Stores ───────────────────────────────────────────────
+pinecone-client==5.1.0
+chromadb==0.4.22
+
+# ── AWS S3 ──────────────────────────────────────────────────────
+boto3==1.35.0
+
+# ── PDF Processing ──────────────────────────────────────────────
+pdfplumber==0.11.4
+camelot-py[cv]==0.11.0
+
+# ── Firebase Auth ───────────────────────────────────────────────
+firebase-admin==6.4.0
+
+# ── Security & Rate Limiting ───────────────────────────────────
+slowapi==0.1.9
+
+# ── Utilities ───────────────────────────────────────────────────
+numpy==1.26.3
+python-dotenv==1.0.0
+requests==2.31.0
+httpx==0.27.0

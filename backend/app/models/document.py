@@ -7,7 +7,7 @@ chunks, and metadata.
 
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import uuid
 
@@ -24,7 +24,7 @@ class DocumentMetadata(BaseModel):
     filename: str
     file_size_bytes: int
     page_count: int
-    upload_timestamp: datetime = Field(default_factory=datetime.utcnow)
+    upload_timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     content_type: str = "application/pdf"
     
     # Processing metadata
@@ -78,8 +78,8 @@ class DocumentProcessingError(BaseModel):
 
 class ChunkingConfig(BaseModel):
     """Configuration for document chunking."""
-    target_chunk_size: int = 500  # tokens
-    chunk_overlap: int = 50  # tokens
+    target_chunk_size: int = 1024  # tokens (optimised for dense 10-K data)
+    chunk_overlap: int = 128  # tokens
     preserve_tables: bool = True
     preserve_headers: bool = True
     min_chunk_size: int = 50  # tokens
