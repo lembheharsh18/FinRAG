@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from fastapi import APIRouter, HTTPException, status, Depends
 
-from app.services.vector_store import VectorStoreError, get_vector_store
+from app.services.vector_store import VectorStore, VectorStoreError, get_vector_store
 from app.services.pdf_processor import PDFProcessor, PDFProcessingError
 from app.services.chunking import SemanticChunker
 from app.models.document import ChunkingConfig

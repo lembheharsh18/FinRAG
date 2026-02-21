@@ -10,6 +10,7 @@ import uuid
 import time
 import shutil
 import tempfile
+import threading
 from typing import Optional
 from pathlib import Path
 import logging
@@ -244,35 +245,36 @@ async def upload_document(
             "filename": file.filename
         })
         
-        # Auto-index the document immediately
-        try:
-            from app.services.vector_store import VectorStore
-            vector_store = VectorStore()
-            index_result = vector_store.index_chunks(
-                user_id=user_id,
-                document_id=document_id,
-                chunks=chunks,
-                filename=file.filename
-            )
-            logger.info(
-                f"Auto-indexed document {document_id}: "
-                f"{index_result['chunks_indexed']} chunks indexed"
-            )
-            indexed = True
-            chunks_indexed = index_result['chunks_indexed']
-        except Exception as index_error:
-            logger.warning(f"Auto-indexing failed (will retry via /api/index): {index_error}")
-            indexed = False
-            chunks_indexed = 0
+        # Auto-index in background thread so upload returns fast
+        def _background_index():
+            try:
+                from app.services.vector_store import VectorStore
+                t0 = time.time()
+                vector_store = VectorStore()
+                index_result = vector_store.index_chunks(
+                    user_id=user_id,
+                    document_id=document_id,
+                    chunks=chunks,
+                    filename=file.filename
+                )
+                logger.info(
+                    f"Background-indexed document {document_id}: "
+                    f"{index_result['chunks_indexed']} chunks in {time.time()-t0:.1f}s"
+                )
+            except Exception as index_error:
+                logger.warning(f"Background indexing failed (retry via /api/index): {index_error}")
+
+        threading.Thread(target=_background_index, daemon=True).start()
         
         logger.info(
             f"Processed document {document_id}: "
-            f"{metadata.page_count} pages, {metadata.total_chunks} chunks"
+            f"{metadata.page_count} pages, {metadata.total_chunks} chunks "
+            f"in {time.time()-start_time:.1f}s (indexing in background)"
         )
         
         response = DocumentUploadResponse(
             document_id=document_id,
-            message="Document uploaded and processed successfully" + (" and indexed" if indexed else ""),
+            message="Document uploaded and processed successfully. Indexing in background.",
             metadata=metadata,
             chunks_preview=chunks_preview
         )

@@ -6,6 +6,7 @@ table extraction using Camelot.
 """
 
 import os
+import time
 import tempfile
 from typing import List, Dict, Any, Tuple, Optional
 from pathlib import Path
@@ -26,6 +27,10 @@ class PDFProcessingError(Exception):
         self.message = message
         self.error_code = error_code
         super().__init__(self.message)
+
+
+# Module-level Ghostscript availability cache
+_ghostscript_available: Optional[bool] = None
 
 
 class PDFProcessor:
@@ -191,28 +196,35 @@ class PDFProcessor:
         tables = []
         
         # Check if Ghostscript is available (required for Camelot)
-        try:
-            import subprocess
-            # Try common Ghostscript executable names
-            gs_found = False
-            for gs_cmd in ['gswin64c', 'gswin32c', 'gs']:
-                try:
-                    subprocess.run([gs_cmd, '--version'], 
-                                   capture_output=True, timeout=5)
-                    gs_found = True
-                    break
-                except (FileNotFoundError, subprocess.TimeoutExpired):
-                    continue
-            
-            if not gs_found:
-                logger.warning(
-                    "Ghostscript not found in PATH. Table extraction will be skipped. "
-                    "Install Ghostscript and add it to PATH for table extraction support."
-                )
-                return tables
-        except Exception as e:
-            logger.warning(f"Could not check for Ghostscript: {e}. Skipping table extraction.")
+        # Use module-level cache to avoid repeated subprocess calls
+        global _ghostscript_available
+        if _ghostscript_available is False:
             return tables
+        
+        if _ghostscript_available is None:
+            try:
+                import subprocess
+                gs_found = False
+                for gs_cmd in ['gswin64c', 'gswin32c', 'gs']:
+                    try:
+                        subprocess.run([gs_cmd, '--version'], 
+                                       capture_output=True, timeout=5)
+                        gs_found = True
+                        break
+                    except (FileNotFoundError, subprocess.TimeoutExpired):
+                        continue
+                
+                _ghostscript_available = gs_found
+                if not gs_found:
+                    logger.warning(
+                        "Ghostscript not found in PATH. Table extraction will be skipped. "
+                        "Install Ghostscript and add it to PATH for table extraction support."
+                    )
+                    return tables
+            except Exception as e:
+                _ghostscript_available = False
+                logger.warning(f"Could not check for Ghostscript: {e}. Skipping table extraction.")
+                return tables
         
         # Try lattice mode first (works best for bordered tables)
         try:
@@ -356,8 +368,13 @@ class PDFProcessor:
         page_count = self.get_page_count(file_path)
         
         # Extract content
+        t0 = time.time()
         pages_content = self.extract_text(file_path)
+        logger.info(f"Text extraction: {time.time()-t0:.1f}s ({page_count} pages)")
+        
+        t1 = time.time()
         tables = self.extract_tables(file_path)
+        logger.info(f"Table extraction: {time.time()-t1:.1f}s ({len(tables)} tables)")
         
         return {
             "page_count": page_count,

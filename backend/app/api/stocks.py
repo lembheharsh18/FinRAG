@@ -8,6 +8,7 @@ top movers, and price history for the dashboard.
 import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeout
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
@@ -87,72 +88,96 @@ def _fetch_market_data() -> Dict[str, Any]:
             "^RUT": "Russell 2000",
         }
         
-        indices = []
-        for symbol, name in index_symbols.items():
+        # ── Helper functions for parallel fetching ──────────────
+        def _fetch_index(symbol: str, name: str) -> Optional[IndexData]:
             try:
                 ticker = yf.Ticker(symbol)
                 hist = ticker.history(period="5d", interval="1h")
                 if hist.empty:
-                    continue
-                
+                    return None
                 current_price = float(hist["Close"].iloc[-1])
                 prev_close = float(hist["Close"].iloc[0])
                 change = current_price - prev_close
                 change_pct = (change / prev_close) * 100 if prev_close else 0
-                
-                # Get sparkline data (last 24 data points)
-                sparkline = hist["Close"].tail(24).tolist()
-                sparkline = [round(float(v), 2) for v in sparkline]
-                
-                indices.append(IndexData(
-                    symbol=symbol,
-                    name=name,
+                sparkline = [round(float(v), 2) for v in hist["Close"].tail(24).tolist()]
+                return IndexData(
+                    symbol=symbol, name=name,
                     price=round(current_price, 2),
                     change=round(change, 2),
                     change_percent=round(change_pct, 2),
                     sparkline=sparkline,
-                ))
+                )
             except Exception as e:
                 logger.warning(f"Failed to fetch {symbol}: {e}")
-        
-        # Fetch popular/trending stocks for movers
-        stock_symbols = [
-            "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA",
-            "JPM", "V", "WMT", "JNJ", "PG", "MA", "HD", "DIS",
-            "NFLX", "AMD", "INTC", "CRM", "PYPL", "BA", "GS",
-        ]
-        
-        movers = []
-        for sym in stock_symbols:
+                return None
+
+        # ── Known company names (avoid slow ticker.info calls) ──
+        STOCK_NAMES = {
+            "AAPL": "Apple Inc.", "MSFT": "Microsoft", "GOOGL": "Alphabet Inc.",
+            "AMZN": "Amazon.com", "NVDA": "NVIDIA Corp.", "META": "Meta Platforms",
+            "TSLA": "Tesla Inc.", "JPM": "JPMorgan Chase", "V": "Visa Inc.",
+            "WMT": "Walmart Inc.", "JNJ": "Johnson & Johnson", "PG": "Procter & Gamble",
+            "MA": "Mastercard", "HD": "Home Depot", "DIS": "Walt Disney",
+            "NFLX": "Netflix Inc.", "AMD": "AMD Inc.", "INTC": "Intel Corp.",
+            "CRM": "Salesforce", "PYPL": "PayPal", "BA": "Boeing Co.", "GS": "Goldman Sachs",
+        }
+
+        def _fetch_mover(sym: str) -> Optional[StockMover]:
             try:
                 ticker = yf.Ticker(sym)
-                info = ticker.fast_info
                 hist = ticker.history(period="2d")
                 if hist.empty:
-                    continue
-                
+                    return None
                 current = float(hist["Close"].iloc[-1])
                 prev = float(hist["Close"].iloc[0]) if len(hist) > 1 else current
                 change = current - prev
                 change_pct = (change / prev) * 100 if prev else 0
                 volume = int(hist["Volume"].iloc[-1]) if "Volume" in hist else 0
-                
-                # Try to get the company short name
-                try:
-                    short_name = ticker.info.get("shortName", sym)
-                except Exception:
-                    short_name = sym
-                
-                movers.append(StockMover(
-                    symbol=sym,
-                    name=short_name,
+                return StockMover(
+                    symbol=sym, name=STOCK_NAMES.get(sym, sym),
                     price=round(current, 2),
                     change=round(change, 2),
                     change_percent=round(change_pct, 2),
                     volume=volume,
-                ))
+                )
             except Exception as e:
                 logger.warning(f"Failed to fetch {sym}: {e}")
+                return None
+
+        # ── Parallel fetch indices + movers ─────────────────────
+        stock_symbols = [
+            "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA",
+            "JPM", "V", "WMT", "JNJ", "PG", "MA", "HD", "DIS",
+            "NFLX", "AMD", "INTC", "CRM", "PYPL", "BA", "GS",
+        ]
+
+        indices: List[IndexData] = []
+        movers: List[StockMover] = []
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            idx_futures = {
+                executor.submit(_fetch_index, sym, name): sym
+                for sym, name in index_symbols.items()
+            }
+            mover_futures = {
+                executor.submit(_fetch_mover, sym): sym
+                for sym in stock_symbols
+            }
+
+            for fut in as_completed(idx_futures, timeout=30):
+                result = fut.result()
+                if result:
+                    indices.append(result)
+
+            for fut in as_completed(mover_futures, timeout=30):
+                result = fut.result()
+                if result:
+                    movers.append(result)
+
+        # If we got nothing from live API, use fallback data
+        if not indices and not movers:
+            logger.warning("yfinance returned no data, using fallback")
+            return _get_fallback_data()
         
         # Sort for gainers/losers
         sorted_movers = sorted(movers, key=lambda x: x.change_percent, reverse=True)
@@ -169,7 +194,7 @@ def _fetch_market_data() -> Dict[str, Any]:
             "trending": trending,
             "last_updated": datetime.now().isoformat(),
         }
-    except Exception as e:
+    except (Exception, FuturesTimeout) as e:
         logger.error(f"Failed to fetch market data: {e}")
         return _get_fallback_data()
 
@@ -233,11 +258,13 @@ def _get_fallback_data() -> Dict[str, Any]:
     Data is cached for 5 minutes to avoid rate limiting.
     """,
 )
-async def get_market_data():
+def get_market_data():
     """
     Fetch market overview data.
 
     Returns cached data if available, otherwise fetches fresh data.
+    Note: This is a regular def (not async) so FastAPI runs it in
+    a thread pool, preventing it from blocking the event loop.
     """
     cached = _get_cached_data()
     if cached:
@@ -253,7 +280,7 @@ async def get_market_data():
     summary="Get Price History",
     description="Get historical price data for a specific stock symbol.",
 )
-async def get_price_history(
+def get_price_history(
     symbol: str,
     period: str = "1mo",
     interval: str = "1d",

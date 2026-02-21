@@ -1,7 +1,7 @@
 """
 Embedding Service for FinRAG.
 
-Uses Google Gemini text-embedding-004 for production embeddings.
+Uses Google Gemini gemini-embedding-001 for production embeddings.
 Falls back to ChromaDB's built-in ONNX embeddings for local development
 when GOOGLE_API_KEY is not configured.
 """
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 # ── Embedding dimension constants ────────────────────────────────
-GEMINI_EMBEDDING_DIM = 768
+GEMINI_EMBEDDING_DIM = 3072
 CHROMADB_EMBEDDING_DIM = 384
 
 

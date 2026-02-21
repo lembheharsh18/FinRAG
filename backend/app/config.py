@@ -35,7 +35,7 @@ class Settings(BaseSettings):
 
     # ── Google Gemini Embeddings ─────────────────────────────────
     google_api_key: Optional[str] = None
-    gemini_embedding_model: str = "models/text-embedding-004"
+    gemini_embedding_model: str = "models/gemini-embedding-001"
 
     # ── Pinecone Vector Store ────────────────────────────────────
     pinecone_api_key: Optional[str] = None
@@ -58,10 +58,7 @@ class Settings(BaseSettings):
 
     # ── CORS ─────────────────────────────────────────────────────
     cors_origins: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "https://fin-rag-phi.vercel.app",
+        "*"
     ]
 
     # ── File Upload ──────────────────────────────────────────────
