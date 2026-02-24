@@ -50,11 +50,18 @@ class EmbeddingService:
         # Prefer Google Gemini embeddings
         if settings.google_api_key:
             try:
-                import google.generativeai as genai
+                from google import genai
+                from google.genai import types
 
-                genai.configure(api_key=settings.google_api_key)
-                self._genai = genai
-                self._model_name = settings.gemini_embedding_model
+                self._client = genai.Client(api_key=settings.google_api_key)
+                self._types = types
+                # New SDK uses bare model name (no 'models/' prefix)
+                raw_name = settings.gemini_embedding_model
+                self._model_name = (
+                    raw_name.replace("models/", "")
+                    if raw_name.startswith("models/")
+                    else raw_name
+                )
                 self._backend = "gemini"
                 logger.info(
                     f"Embedding backend: Google Gemini ({self._model_name})"
@@ -62,8 +69,8 @@ class EmbeddingService:
                 return
             except ImportError:
                 logger.warning(
-                    "google-generativeai not installed — "
-                    "pip install google-generativeai"
+                    "google-genai not installed — "
+                    "pip install google-genai"
                 )
             except Exception as e:
                 logger.error(f"Failed to configure Gemini: {e}")
@@ -160,12 +167,14 @@ class EmbeddingService:
 
         if self._backend == "gemini":
             try:
-                result = self._genai.embed_content(
+                result = self._client.models.embed_content(
                     model=self._model_name,
-                    content=query,
-                    task_type="RETRIEVAL_QUERY",
+                    contents=query,
+                    config=self._types.EmbedContentConfig(
+                        task_type="RETRIEVAL_QUERY",
+                    ),
                 )
-                return result["embedding"]
+                return list(result.embeddings[0].values)
             except Exception as e:
                 logger.error(f"Gemini query embedding failed: {e}")
                 raise RuntimeError(f"Embedding query failed: {e}")
@@ -183,12 +192,16 @@ class EmbeddingService:
 
             for i in range(0, len(texts), BATCH_SIZE):
                 batch = texts[i : i + BATCH_SIZE]
-                result = self._genai.embed_content(
+                result = self._client.models.embed_content(
                     model=self._model_name,
-                    content=batch,
-                    task_type="RETRIEVAL_DOCUMENT",
+                    contents=batch,
+                    config=self._types.EmbedContentConfig(
+                        task_type="RETRIEVAL_DOCUMENT",
+                    ),
                 )
-                all_embeddings.extend(result["embedding"])
+                all_embeddings.extend(
+                    [list(e.values) for e in result.embeddings]
+                )
 
             return all_embeddings
         except Exception as e:

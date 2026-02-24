@@ -237,6 +237,15 @@ class PDFProcessor:
             
             for i, table in enumerate(lattice_tables):
                 if table.df is not None and not table.df.empty:
+                    # Filter bad tables based on Camelot's parsing report
+                    report = table.parsing_report
+                    if report.get("accuracy", 100) < 80:
+                        continue
+                    if report.get("whitespace", 0) > 65:
+                        continue
+                    if len(table.df.columns) <= 1 or len(table.df) <= 1:
+                        continue
+                        
                     tables.append(self._process_table(
                         table, i, "lattice"
                     ))
@@ -255,6 +264,15 @@ class PDFProcessor:
             
             for i, table in enumerate(stream_tables):
                 if table.df is not None and not table.df.empty:
+                    # Stricter filtering for stream mode to avoid text blocks
+                    report = table.parsing_report
+                    if report.get("accuracy", 100) < 85:
+                        continue
+                    if report.get("whitespace", 0) > 65:
+                        continue
+                    if len(table.df.columns) <= 1 or len(table.df) <= 1:
+                        continue
+                        
                     # Check for duplicates (same content from lattice)
                     table_dict = self._process_table(
                         table, len(tables) + i, "stream"
@@ -320,7 +338,13 @@ class PDFProcessor:
         # Add headers
         if len(df) > 0:
             headers = list(df.iloc[0])
-            lines.append(f"Headers: {', '.join(str(h) for h in headers)}")
+            # Only label as headers if the combined length is reasonable
+            # (prevents labeling long text paragraphs as table headers)
+            total_len = sum(len(str(h)) for h in headers)
+            if total_len < 150:
+                lines.append(f"Headers: {', '.join(str(h) for h in headers)}")
+            else:
+                lines.append(" | ".join(str(h) for h in headers))
         
         # Add row data
         for idx, row in df.iterrows():
