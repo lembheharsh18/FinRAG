@@ -108,12 +108,14 @@ async def get_suggestions(
 
         # Parse the JSON response
         content = response["content"].strip()
-        # Handle potential markdown code blocks
-        if content.startswith("```"):
-            content = content.split("```")[1]
-            if content.startswith("json"):
-                content = content[4:]
-            content = content.strip()
+        # Handle potential markdown code blocks even if there's leading text
+        if "```" in content:
+            parts = content.split("```")
+            if len(parts) >= 3:
+                content = parts[1]
+                if content.startswith("json"):
+                    content = content[4:]
+                content = content.strip()
 
         suggestions = json.loads(content)
 
@@ -232,24 +234,34 @@ async def get_document_summary(
         )
 
         content = response["content"].strip()
-        if content.startswith("```"):
-            content = content.split("```")[1]
-            if content.startswith("json"):
-                content = content[4:]
-            content = content.strip()
+        # Handle potential markdown code blocks even if there's leading text
+        if "```" in content:
+            parts = content.split("```")
+            if len(parts) >= 3:
+                content = parts[1]
+                if content.startswith("json"):
+                    content = content[4:]
+                content = content.strip()
+
+        # Fallback to finding JSON brackets if still not parsed properly
+        if not content.startswith("{") and "{" in content:
+            start_idx = content.find('{')
+            end_idx = content.rfind('}')
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                content = content[start_idx:end_idx+1]
 
         summary_data = json.loads(content)
 
         return DocumentSummary(
             document_id=document_id,
-            title=summary_data.get("title", "Financial Document"),
-            executive_summary=summary_data.get("executive_summary", ""),
-            key_takeaways=summary_data.get("key_takeaways", [])[:5],
-            financial_highlights=summary_data.get("financial_highlights", [])[:3],
-            risk_factors=summary_data.get("risk_factors", [])[:3],
-            bull_case=summary_data.get("bull_case", ""),
-            bear_case=summary_data.get("bear_case", ""),
-            sentiment=summary_data.get("sentiment", "neutral")
+            title=str(summary_data.get("title") or "Financial Document"),
+            executive_summary=str(summary_data.get("executive_summary") or ""),
+            key_takeaways=(summary_data.get("key_takeaways") or [])[:5],
+            financial_highlights=(summary_data.get("financial_highlights") or [])[:3],
+            risk_factors=(summary_data.get("risk_factors") or [])[:3],
+            bull_case=str(summary_data.get("bull_case") or ""),
+            bear_case=str(summary_data.get("bear_case") or ""),
+            sentiment=str(summary_data.get("sentiment") or "neutral")
         )
 
     except HTTPException:
@@ -362,39 +374,61 @@ async def get_financials(
         )
 
         content = response["content"].strip()
-        if content.startswith("```"):
-            content = content.split("```")[1]
-            if content.startswith("json"):
-                content = content[4:]
-            content = content.strip()
+        if "```" in content:
+            parts = content.split("```")
+            if len(parts) >= 3:
+                content = parts[1]
+                if content.startswith("json"):
+                    content = content[4:]
+                content = content.strip()
+
+        # Fallback to finding JSON brackets if still not parsed properly
+        if not content.startswith("{") and "{" in content:
+            start_idx = content.find('{')
+            end_idx = content.rfind('}')
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                content = content[start_idx:end_idx+1]
 
         data = json.loads(content)
 
+        # Safely handle potential missing or null lists
+        raw_metrics = data.get("metrics") or []
+        raw_ratios = data.get("key_ratios") or []
+
         metrics = [
             FinancialMetric(
-                name=m.get("name", ""),
-                value=m.get("value", ""),
-                change=m.get("change"),
-                category=m.get("category", "other")
+                name=str(m.get("name") or ""),
+                value=str(m.get("value") or ""),
+                change=str(m.get("change")) if m.get("change") is not None else None,
+                category=str(m.get("category") or "other")
             )
-            for m in data.get("metrics", [])
+            for m in raw_metrics if isinstance(m, dict)
         ]
 
         ratios = [
-            KeyRatio(name=r.get("name", ""), value=r.get("value", ""))
-            for r in data.get("key_ratios", [])
+            KeyRatio(
+                name=str(r.get("name") or ""),
+                value=str(r.get("value") or "")
+            )
+            for r in raw_ratios if isinstance(r, dict)
         ]
 
         return FinancialsResponse(
             document_id=document_id,
-            company_name=data.get("company_name", "Unknown"),
-            period=data.get("period", "Unknown"),
+            company_name=str(data.get("company_name") or "Unknown"),
+            period=str(data.get("period") or "Unknown"),
             metrics=metrics,
             key_ratios=ratios
         )
 
     except HTTPException:
         raise
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parse error in financials: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"error": "Failed to parse structured financial data", "error_code": "PARSE_ERROR"}
+        )
     except Exception as e:
         logger.error(f"Financials extraction failed: {e}")
         raise HTTPException(
@@ -502,30 +536,47 @@ async def compare_documents(
         )
 
         content = response["content"].strip()
-        if content.startswith("```"):
-            content = content.split("```")[1]
-            if content.startswith("json"):
-                content = content[4:]
-            content = content.strip()
+        if "```" in content:
+            parts = content.split("```")
+            if len(parts) >= 3:
+                content = parts[1]
+                if content.startswith("json"):
+                    content = content[4:]
+                content = content.strip()
+
+        # Fallback to finding JSON brackets if still not parsed properly
+        if not content.startswith("{") and "{" in content:
+            start_idx = content.find('{')
+            end_idx = content.rfind('}')
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                content = content[start_idx:end_idx+1]
 
         data = json.loads(content)
 
+        raw_dimensions = data.get("dimensions") or []
+
         dimensions = [
             ComparisonDimension(
-                dimension=d.get("dimension", ""),
-                entries=[ComparisonEntry(**e) for e in d.get("entries", [])],
-                insight=d.get("insight", "")
+                dimension=str(d.get("dimension") or ""),
+                entries=[ComparisonEntry(**e) for e in (d.get("entries") or []) if isinstance(e, dict)],
+                insight=str(d.get("insight") or "")
             )
-            for d in data.get("dimensions", [])
+            for d in raw_dimensions if isinstance(d, dict)
         ]
 
         return CompareResponse(
-            comparison_summary=data.get("comparison_summary", ""),
+            comparison_summary=str(data.get("comparison_summary") or ""),
             dimensions=dimensions,
-            overall_insight=data.get("overall_insight", ""),
+            overall_insight=str(data.get("overall_insight") or ""),
             documents_compared=doc_names
         )
 
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parse error in compare: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"error": "Failed to parse structured comparison data", "error_code": "PARSE_ERROR"}
+        )
     except Exception as e:
         logger.error(f"Document comparison failed: {e}")
         raise HTTPException(

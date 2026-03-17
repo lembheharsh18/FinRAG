@@ -175,8 +175,8 @@ def _fetch_market_data() -> Dict[str, Any]:
                     movers.append(result)
 
         # If we got nothing from live API, use fallback data
-        if not indices and not movers:
-            logger.warning("yfinance returned no data, using fallback")
+        if not indices or len(movers) < 5:
+            logger.warning("yfinance returned insufficient data, using fallback")
             return _get_fallback_data()
         
         # Sort for gainers/losers
