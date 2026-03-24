@@ -77,6 +77,9 @@ async def lifespan(app: FastAPI):
         f"(debug={settings.debug})"
     )
 
+    # Log CORS configuration
+    logger.info(f"CORS origins: {settings.cors_origins}")
+
     # Log active backends
     if settings.pinecone_api_key:
         logger.info("Vector store: Pinecone")
