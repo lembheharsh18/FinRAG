@@ -58,9 +58,7 @@ class Settings(BaseSettings):
 
     # ── CORS ─────────────────────────────────────────────────────
     cors_origins: list[str] = [
-        "https://fin-rag-phi.vercel.app",
-        "http://localhost:5173",
-        "http://localhost:3000",
+        "*"
     ]
 
     # ── File Upload ──────────────────────────────────────────────
