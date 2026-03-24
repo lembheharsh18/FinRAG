@@ -58,7 +58,11 @@ class Settings(BaseSettings):
 
     # ── CORS ─────────────────────────────────────────────────────
     cors_origins: list[str] = [
-        "*"
+        '*',
+        'localhost:5173',
+        'localhost:3000',
+        'finrag-phi.vercel.app',
+        'finrag-ss76.onrender.com',
     ]
 
     # ── File Upload ──────────────────────────────────────────────
