@@ -7,8 +7,10 @@ automatic environment variable loading.
 """
 
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from functools import lru_cache
 from typing import Optional
+import json
 
 
 class Settings(BaseSettings):
@@ -63,6 +65,24 @@ class Settings(BaseSettings):
         'http://localhost:5173',
         'http://localhost:3000',
     ]
+
+    @field_validator('cors_origins', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Accept JSON array, comma-separated string, or single URL."""
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            # Try JSON first: ["https://...", "https://..."]
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return [s.strip() for s in parsed]
+            except (json.JSONDecodeError, TypeError):
+                pass
+            # Fall back to comma-separated: https://...,https://...
+            return [s.strip() for s in v.split(',') if s.strip()]
+        return v
 
     # ── File Upload ──────────────────────────────────────────────
     max_file_size_mb: int = 50
