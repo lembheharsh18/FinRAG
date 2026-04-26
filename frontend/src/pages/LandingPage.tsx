@@ -6,7 +6,7 @@ import {
   ChevronRight, Sparkles, GitCompare,
   DollarSign, PieChart, Activity, BookOpen
 } from 'lucide-react'
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 
 // Floating particle component
 function FloatingIcon({ icon: Icon, delay, x, y, size = 24 }: { 
@@ -131,6 +131,29 @@ export default function LandingPage() {
   const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0])
   const heroScale = useTransform(scrollYProgress, [0, 0.15], [1, 0.95])
 
+  // Typewriter effect
+  const phrases = ['Financial Documents', 'Annual Reports', 'Balance Sheets', '10-K Filings']
+  const [phraseIdx, setPhraseIdx] = useState(0)
+  const [charIdx, setCharIdx] = useState(0)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const currentPhrase = phrases[phraseIdx]
+  const displayedText = currentPhrase.substring(0, charIdx)
+
+  useEffect(() => {
+    const speed = isDeleting ? 40 : 80
+    const timer = setTimeout(() => {
+      if (!isDeleting && charIdx === currentPhrase.length) {
+        setTimeout(() => setIsDeleting(true), 1500)
+      } else if (isDeleting && charIdx === 0) {
+        setIsDeleting(false)
+        setPhraseIdx((prev) => (prev + 1) % phrases.length)
+      } else {
+        setCharIdx((prev) => prev + (isDeleting ? -1 : 1))
+      }
+    }, speed)
+    return () => clearTimeout(timer)
+  }, [charIdx, isDeleting, currentPhrase.length])
+
   const features = [
     {
       icon: MessageSquare,
@@ -199,7 +222,7 @@ export default function LandingPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-dark overflow-x-hidden">
+    <div className="min-h-screen bg-dark overflow-x-hidden bg-mesh">
       {/* Floating background elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <FloatingIcon icon={DollarSign} delay={0} x="10%" y="20%" size={32} />
@@ -211,9 +234,32 @@ export default function LandingPage() {
         <FloatingIcon icon={BookOpen} delay={2.5} x="50%" y="80%" size={24} />
         <FloatingIcon icon={DollarSign} delay={4} x="60%" y="25%" size={20} />
         
-        {/* Gradient orbs */}
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] animate-pulse-slow" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '1.5s' }} />
+        {/* Morphing gradient orbs */}
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/8 blur-[120px] morph-blob"
+          animate={{ x: [0, 60, 0], y: [0, -40, 0], scale: [1, 1.15, 1] }}
+          transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-accent/8 blur-[100px] morph-blob"
+          animate={{ x: [0, -50, 0], y: [0, 50, 0], scale: [1, 1.2, 1] }}
+          transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+        />
+        <motion.div
+          className="absolute top-1/2 left-1/2 w-[350px] h-[350px] bg-secondary/5 blur-[100px] morph-blob"
+          animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 4 }}
+        />
+        {/* Floating particles */}
+        {[...Array(12)].map((_, i) => (
+          <motion.div
+            key={`p-${i}`}
+            className="absolute w-1 h-1 bg-primary/30 rounded-full"
+            style={{ left: `${8 + i * 8}%`, top: `${10 + (i % 5) * 18}%` }}
+            animate={{ y: [0, -60, 0], opacity: [0.1, 0.7, 0.1] }}
+            transition={{ duration: 5 + i * 0.7, repeat: Infinity, ease: 'easeInOut', delay: i * 0.4 }}
+          />
+        ))}
       </div>
 
       {/* Navigation */}
@@ -223,8 +269,8 @@ export default function LandingPage() {
         transition={{ duration: 0.5 }}
         className="fixed top-0 left-0 right-0 z-50 px-6 py-4"
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between glass px-6 py-3 rounded-2xl">
-          <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+        <div className="max-w-7xl mx-auto flex items-center justify-between glass px-6 py-3 rounded-2xl animate-border-glow">
+          <h1 className="text-xl font-bold font-display bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
             FinRAG
           </h1>
           <div className="flex items-center gap-3">
@@ -267,13 +313,20 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-5xl md:text-7xl font-bold leading-tight mb-6"
+            className="text-5xl md:text-7xl font-bold font-display leading-tight mb-6"
           >
             <span className="text-white">Understand </span>
-            <span className="bg-gradient-primary bg-clip-text text-transparent">Financial</span>
+            <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-shift">Your</span>
             <br />
-            <span className="text-white">Documents with </span>
-            <span className="bg-gradient-primary bg-clip-text text-transparent">AI</span>
+            <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">{displayedText}</span>
+            <motion.span
+              className="inline-block w-[3px] h-[1em] bg-primary ml-1 align-middle"
+              animate={{ opacity: [1, 0] }}
+              transition={{ duration: 0.6, repeat: Infinity }}
+            />
+            <br />
+            <span className="text-white">with </span>
+            <span className="bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent text-glow">AI</span>
           </motion.h1>
 
           {/* Subtitle */}
@@ -317,7 +370,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 1.0 }}
-            className="mt-16 glass p-6 rounded-2xl max-w-2xl mx-auto text-left"
+            className="mt-16 glass-card-glow p-6 rounded-2xl max-w-2xl mx-auto text-left gradient-border"
           >
             <div className="flex items-center gap-2 mb-4">
               <div className="w-3 h-3 rounded-full bg-red-500/60" />
@@ -363,7 +416,7 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <span className="text-primary text-sm font-semibold tracking-wider uppercase">Features</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mt-3">
+            <h2 className="text-3xl md:text-4xl font-bold font-display text-white mt-3">
               Everything You Need for Financial Analysis
             </h2>
             <p className="text-gray-400 mt-4 max-w-xl mx-auto">
@@ -389,7 +442,7 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <span className="text-primary text-sm font-semibold tracking-wider uppercase">How It Works</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mt-3">
+            <h2 className="text-3xl md:text-4xl font-bold font-display text-white mt-3">
               RAG Pipeline — From PDF to Insights
             </h2>
             <p className="text-gray-400 mt-4 max-w-xl mx-auto">
@@ -459,8 +512,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Tech Stack Section */}
-      <section className="relative py-20 px-6">
+      {/* Tech Stack Section — Marquee */}
+      <section className="relative py-20 px-6 overflow-hidden">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -469,27 +522,43 @@ export default function LandingPage() {
             className="mb-12"
           >
             <span className="text-primary text-sm font-semibold tracking-wider uppercase">Built With</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mt-3">
+            <h2 className="text-3xl md:text-4xl font-bold font-display text-white mt-3">
               Modern Tech Stack
             </h2>
           </motion.div>
+        </div>
 
-          <div className="flex flex-wrap justify-center gap-4">
-            {techStack.map((tech, i) => (
+        {/* Marquee row 1 */}
+        <div className="relative w-full overflow-hidden mb-4">
+          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-dark to-transparent z-10" />
+          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-dark to-transparent z-10" />
+          <div className="flex animate-marquee" style={{ width: 'max-content' }}>
+            {[...techStack, ...techStack].map((tech, i) => (
               <motion.div
-                key={tech.name}
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: i * 0.05 }}
+                key={`m1-${i}`}
                 whileHover={{ scale: 1.1, y: -4 }}
-                className="glass px-5 py-3 rounded-xl flex items-center gap-2 cursor-default"
+                className="glass px-5 py-3 rounded-xl flex items-center gap-2 cursor-default mx-2 flex-shrink-0"
               >
-                <div 
-                  className="w-2.5 h-2.5 rounded-full" 
-                  style={{ backgroundColor: tech.color }}
-                />
-                <span className="text-sm text-gray-300 font-medium">{tech.name}</span>
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: tech.color }} />
+                <span className="text-sm text-gray-300 font-medium whitespace-nowrap">{tech.name}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* Marquee row 2 — reverse */}
+        <div className="relative w-full overflow-hidden">
+          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-dark to-transparent z-10" />
+          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-dark to-transparent z-10" />
+          <div className="flex animate-marquee-reverse" style={{ width: 'max-content' }}>
+            {[...techStack, ...techStack].reverse().map((tech, i) => (
+              <motion.div
+                key={`m2-${i}`}
+                whileHover={{ scale: 1.1, y: -4 }}
+                className="glass px-5 py-3 rounded-xl flex items-center gap-2 cursor-default mx-2 flex-shrink-0"
+              >
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: tech.color }} />
+                <span className="text-sm text-gray-300 font-medium whitespace-nowrap">{tech.name}</span>
               </motion.div>
             ))}
           </div>
@@ -503,13 +572,17 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="glass p-12 rounded-3xl relative overflow-hidden"
+            className="glass p-12 rounded-3xl relative overflow-hidden gradient-border"
           >
             {/* Background glow */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10" />
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            />
             
             <div className="relative z-10">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold font-display text-white mb-4">
                 Ready to Analyze Your Documents?
               </h2>
               <p className="text-gray-400 mb-8 max-w-lg mx-auto">
@@ -532,7 +605,7 @@ export default function LandingPage() {
       <footer className="border-t border-white/5 py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">FinRAG</h2>
+            <h2 className="text-lg font-bold font-display bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">FinRAG</h2>
             <span className="text-gray-500 text-sm">•</span>
             <span className="text-gray-500 text-sm">RAG-Powered Financial Analysis</span>
           </div>

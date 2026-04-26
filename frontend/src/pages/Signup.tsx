@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Mail, Lock, User, Eye, EyeOff, AlertCircle, ArrowRight, Check } from 'lucide-react'
+import { Mail, Lock, User, Eye, EyeOff, AlertCircle, ArrowRight, Check, Sparkles } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Signup() {
@@ -20,6 +20,7 @@ export default function Signup() {
   const hasUppercase = /[A-Z]/.test(password)
   const hasNumber = /[0-9]/.test(password)
   const passwordsMatch = password === confirmPassword && password.length > 0
+  const strengthScore = [hasMinLength, hasUppercase, hasNumber].filter(Boolean).length
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -69,42 +70,75 @@ export default function Signup() {
         return 'Invalid email address'
       case 'auth/weak-password':
         return 'Password is too weak'
+      case 'auth/popup-closed-by-user':
+        return 'Sign-in popup was closed. Please try again'
+      case 'auth/popup-blocked':
+        return 'Popup was blocked by your browser. Please allow popups'
       default:
         return 'An error occurred. Please try again'
     }
   }
 
   const PasswordCheck = ({ met, label }: { met: boolean; label: string }) => (
-    <div className={`flex items-center gap-2 text-sm ${met ? 'text-green-400' : 'text-gray-500'}`}>
-      <div className={`w-4 h-4 rounded-full flex items-center justify-center ${met ? 'bg-green-500/20' : 'bg-gray-600/20'}`}>
+    <motion.div
+      className={`flex items-center gap-2 text-sm transition-colors duration-300 ${met ? 'text-green-400' : 'text-gray-500'}`}
+      animate={met ? { x: [0, -3, 3, 0] } : {}}
+      transition={{ duration: 0.3 }}
+    >
+      <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 ${met ? 'bg-green-500/20 scale-110' : 'bg-gray-600/20'}`}>
         {met && <Check size={10} />}
       </div>
       {label}
-    </div>
+    </motion.div>
   )
 
+  const strengthColors = ['bg-red-500', 'bg-yellow-500', 'bg-green-500']
+  const strengthLabels = ['Weak', 'Fair', 'Strong']
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorations */}
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-mesh">
+      {/* Animated background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-secondary/20 rounded-full blur-3xl" />
+        <motion.div
+          className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-accent/15 rounded-full blur-[120px]"
+          animate={{ x: [0, 40, 0], y: [0, -30, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute bottom-1/4 -right-32 w-[400px] h-[400px] bg-primary/15 rounded-full blur-[100px]"
+          animate={{ x: [0, -30, 0], y: [0, 40, 0], scale: [1, 1.15, 1] }}
+          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+        />
+        {/* Floating particles */}
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-accent/40 rounded-full"
+            style={{ left: `${15 + i * 15}%`, top: `${20 + (i % 3) * 25}%` }}
+            animate={{ y: [0, -40, 0], opacity: [0.2, 0.8, 0.2] }}
+            transition={{ duration: 4 + i, repeat: Infinity, ease: 'easeInOut', delay: i * 0.5 }}
+          />
+        ))}
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-md relative z-10"
       >
         {/* Logo */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.1, duration: 0.5 }}
           className="text-center mb-8"
         >
-          <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          <div className="inline-flex items-center gap-2 glass px-4 py-2 rounded-full mb-4">
+            <Sparkles size={14} className="text-accent" />
+            <span className="text-xs text-gray-400 font-medium">Join the future of finance</span>
+          </div>
+          <h1 className="text-5xl font-bold font-display bg-gradient-to-r from-accent via-primary to-secondary bg-clip-text text-transparent">
             FinRAG
           </h1>
           <p className="text-gray-400 mt-2">Create your account</p>
@@ -114,17 +148,17 @@ export default function Signup() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="glass-card"
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="glass-card-glow"
         >
-          <h2 className="text-2xl font-semibold text-white mb-6">Get started</h2>
+          <h2 className="text-2xl font-semibold font-display text-white mb-6">Get started</h2>
 
           {/* Error message */}
           {error && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl mb-6"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl mb-6 animate-shake"
             >
               <AlertCircle size={18} />
               <span className="text-sm">{error}</span>
@@ -136,8 +170,8 @@ export default function Signup() {
             {/* Name field */}
             <div>
               <label className="block text-sm text-gray-300 mb-2">Full name</label>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <div className="relative group">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
                 <input
                   type="text"
                   value={name}
@@ -152,8 +186,8 @@ export default function Signup() {
             {/* Email field */}
             <div>
               <label className="block text-sm text-gray-300 mb-2">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
                 <input
                   type="email"
                   value={email}
@@ -168,8 +202,8 @@ export default function Signup() {
             {/* Password field */}
             <div>
               <label className="block text-sm text-gray-300 mb-2">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -187,19 +221,43 @@ export default function Signup() {
                 </button>
               </div>
               
-              {/* Password requirements */}
-              <div className="mt-3 space-y-1">
-                <PasswordCheck met={hasMinLength} label="At least 8 characters" />
-                <PasswordCheck met={hasUppercase} label="One uppercase letter" />
-                <PasswordCheck met={hasNumber} label="One number" />
-              </div>
+              {/* Animated strength bar */}
+              {password.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="mt-3"
+                >
+                  <div className="flex gap-1 mb-2">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full transition-colors duration-500 ${
+                          i < strengthScore ? strengthColors[strengthScore - 1] : 'bg-gray-700'
+                        }`}
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ duration: 0.3, delay: i * 0.1 }}
+                      />
+                    ))}
+                  </div>
+                  <p className={`text-xs mb-2 ${strengthScore === 3 ? 'text-green-400' : strengthScore === 2 ? 'text-yellow-400' : 'text-red-400'}`}>
+                    {strengthLabels[strengthScore - 1] || 'Too weak'}
+                  </p>
+                  <div className="space-y-1">
+                    <PasswordCheck met={hasMinLength} label="At least 8 characters" />
+                    <PasswordCheck met={hasUppercase} label="One uppercase letter" />
+                    <PasswordCheck met={hasNumber} label="One number" />
+                  </div>
+                </motion.div>
+              )}
             </div>
 
             {/* Confirm Password field */}
             <div>
               <label className="block text-sm text-gray-300 mb-2">Confirm password</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
@@ -209,7 +267,13 @@ export default function Signup() {
                   required
                 />
                 {passwordsMatch && (
-                  <Check className="absolute right-4 top-1/2 -translate-y-1/2 text-green-400" size={18} />
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 400 }}
+                  >
+                    <Check className="absolute right-4 top-1/2 -translate-y-1/2 text-green-400" size={18} />
+                  </motion.div>
                 )}
               </div>
             </div>
@@ -221,11 +285,7 @@ export default function Signup() {
               className="btn-primary w-full flex items-center justify-center gap-2 mt-6"
             >
               {loading ? (
-                <div className="thinking-dots">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
+                <div className="spinner-branded !w-5 !h-5 !border-2 !border-white/20 !border-t-white" />
               ) : (
                 <>
                   Create account
@@ -237,9 +297,9 @@ export default function Signup() {
 
           {/* Divider */}
           <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-white/10" />
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
             <span className="text-gray-500 text-sm">or</span>
-            <div className="flex-1 h-px bg-white/10" />
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           </div>
 
           {/* Google sign in */}

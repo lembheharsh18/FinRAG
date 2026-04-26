@@ -6,6 +6,10 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: ['Outfit', 'Inter', 'sans-serif'],
+        body: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+      },
       colors: {
         primary: {
           DEFAULT: '#0066FF',
@@ -33,6 +37,19 @@ export default {
           800: '#005766',
           900: '#002B33',
         },
+        accent: {
+          DEFAULT: '#8B5CF6',
+          50: '#F3EEFE',
+          100: '#E7DDFD',
+          200: '#CFBBFB',
+          300: '#B799F9',
+          400: '#A078F7',
+          500: '#8B5CF6',
+          600: '#6D28D9',
+          700: '#5B21B6',
+          800: '#4C1D95',
+          900: '#3B0764',
+        },
         dark: {
           DEFAULT: '#0A0E27',
           50: '#1A1F3A',
@@ -46,7 +63,9 @@ export default {
       backgroundImage: {
         'gradient-dark': 'linear-gradient(135deg, #0A0E27 0%, #1A1F3A 100%)',
         'gradient-primary': 'linear-gradient(135deg, #0066FF 0%, #00D9FF 100%)',
+        'gradient-accent': 'linear-gradient(135deg, #8B5CF6 0%, #0066FF 50%, #00D9FF 100%)',
         'gradient-glow': 'radial-gradient(circle at center, rgba(0, 102, 255, 0.15) 0%, transparent 70%)',
+        'gradient-mesh': 'radial-gradient(at 40% 20%, rgba(0, 102, 255, 0.12) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(139, 92, 246, 0.1) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(0, 217, 255, 0.08) 0px, transparent 50%), radial-gradient(at 80% 50%, rgba(0, 102, 255, 0.06) 0px, transparent 50%), radial-gradient(at 0% 100%, rgba(139, 92, 246, 0.08) 0px, transparent 50%)',
       },
       backdropBlur: {
         xs: '2px',
@@ -54,7 +73,18 @@ export default {
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'float': 'float 6s ease-in-out infinite',
+        'float-slow': 'float 8s ease-in-out infinite',
+        'float-delayed': 'float 7s ease-in-out infinite 2s',
         'glow': 'glow 2s ease-in-out infinite alternate',
+        'morph': 'morph 8s ease-in-out infinite',
+        'gradient-shift': 'gradient-shift 6s ease infinite',
+        'spin-slow': 'spin 15s linear infinite',
+        'shimmer': 'shimmer 2s infinite',
+        'bounce-slow': 'bounce 3s infinite',
+        'slide-up': 'slideUp 0.5s ease-out forwards',
+        'fade-in': 'fadeIn 0.5s ease-out forwards',
+        'text-reveal': 'textReveal 0.8s ease-out forwards',
+        'border-glow': 'borderGlow 3s ease-in-out infinite alternate',
       },
       keyframes: {
         float: {
@@ -64,6 +94,25 @@ export default {
         glow: {
           '0%': { boxShadow: '0 0 20px rgba(0, 102, 255, 0.3)' },
           '100%': { boxShadow: '0 0 40px rgba(0, 102, 255, 0.6)' },
+        },
+        morph: {
+          '0%, 100%': { borderRadius: '60% 40% 30% 70% / 60% 30% 70% 40%' },
+          '25%': { borderRadius: '30% 60% 70% 40% / 50% 60% 30% 60%' },
+          '50%': { borderRadius: '50% 60% 30% 60% / 30% 60% 70% 40%' },
+          '75%': { borderRadius: '60% 40% 60% 30% / 40% 50% 60% 50%' },
+        },
+        'gradient-shift': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        textReveal: {
+          '0%': { opacity: '0', transform: 'translateY(20px) rotateX(-10deg)' },
+          '100%': { opacity: '1', transform: 'translateY(0) rotateX(0)' },
+        },
+        borderGlow: {
+          '0%': { borderColor: 'rgba(0, 102, 255, 0.3)' },
+          '50%': { borderColor: 'rgba(139, 92, 246, 0.5)' },
+          '100%': { borderColor: 'rgba(0, 217, 255, 0.3)' },
         },
       },
     },
