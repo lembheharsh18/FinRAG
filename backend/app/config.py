@@ -106,8 +106,8 @@ class Settings:
 
         # ── CORS ─────────────────────────────────────────────────
         _default_cors = (
-            "https://fin-rag-phi.vercel.app,"
-            "https://finrag-ss76.onrender.com,"
+            "https://fin-rag-rcp5.vercel.app,"
+            "https://finrag-iv27.onrender.com,"
             "http://localhost:5173,"
             "http://localhost:3000"
         )
